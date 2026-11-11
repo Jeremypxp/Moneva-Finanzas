@@ -1,4 +1,4 @@
-name: app_finanzas
+name: moneva_finanzas
 description: "App personal para registrar ingresos y gastos en soles."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.

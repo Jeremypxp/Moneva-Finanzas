@@ -4,7 +4,8 @@
 ingresos y gastos en soles peruanos (PEN), entender la semana y revisar el
 historial sin conexión.
 
-> El nombre visible es «Moneva». El identificador técnico del paquete sigue siendo
+> El nombre visible es «Moneva». La carpeta del proyecto es `Moneva-Finanzas`,
+> el paquete Dart es `moneva_finanzas` y el identificador Android sigue siendo
 > `com.personal.finanzas.app_finanzas` para no romper instalaciones ni firmas.
 
 Estado inicial **vacío**: no incluye movimientos de ejemplo ni datos financieros
@@ -74,7 +75,8 @@ integration_test/      flujo completo en un dispositivo Android
 
 ## Datos y privacidad
 
-- Base SQLite local llamada `app_finanzas`, administrada por `drift_flutter`.
+- Base SQLite local llamada `app_finanzas` (nombre interno del archivo, se
+  mantiene para conservar los datos existentes), administrada por `drift_flutter`.
 - Categorías iniciales: Alimentación, Transporte, Snacks y mascota, Hogar,
   Salud, Servicios, Ocio, Educación, Otros gastos, Sueldo, Trabajo
   independiente, Ventas, Regalos y Otros ingresos.

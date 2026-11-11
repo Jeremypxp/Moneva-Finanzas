@@ -1,7 +1,7 @@
-import 'package:app_finanzas/core/domain/category.dart';
-import 'package:app_finanzas/core/domain/movement_type.dart';
-import 'package:app_finanzas/features/movements/application/movement_csv_exporter.dart';
-import 'package:app_finanzas/features/movements/domain/movement.dart';
+import 'package:moneva_finanzas/core/domain/category.dart';
+import 'package:moneva_finanzas/core/domain/movement_type.dart';
+import 'package:moneva_finanzas/features/movements/application/movement_csv_exporter.dart';
+import 'package:moneva_finanzas/features/movements/domain/movement.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
 

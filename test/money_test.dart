@@ -1,4 +1,4 @@
-import 'package:app_finanzas/core/formatting/money.dart';
+import 'package:moneva_finanzas/core/formatting/money.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

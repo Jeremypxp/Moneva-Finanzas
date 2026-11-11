@@ -1,9 +1,9 @@
-import 'package:app_finanzas/core/database/app_database.dart';
-import 'package:app_finanzas/core/domain/movement_type.dart';
-import 'package:app_finanzas/features/categories/data/categories_repository.dart';
-import 'package:app_finanzas/features/movements/data/movements_repository.dart';
-import 'package:app_finanzas/features/movements/domain/movement.dart';
-import 'package:app_finanzas/features/reports/data/reports_repository.dart';
+import 'package:moneva_finanzas/core/database/app_database.dart';
+import 'package:moneva_finanzas/core/domain/movement_type.dart';
+import 'package:moneva_finanzas/features/categories/data/categories_repository.dart';
+import 'package:moneva_finanzas/features/movements/data/movements_repository.dart';
+import 'package:moneva_finanzas/features/movements/domain/movement.dart';
+import 'package:moneva_finanzas/features/reports/data/reports_repository.dart';
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 

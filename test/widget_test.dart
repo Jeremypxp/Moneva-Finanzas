@@ -1,7 +1,7 @@
-import 'package:app_finanzas/app/app.dart';
-import 'package:app_finanzas/core/domain/period_totals.dart';
-import 'package:app_finanzas/features/movements/application/movements_providers.dart';
-import 'package:app_finanzas/features/movements/domain/movement.dart';
+import 'package:moneva_finanzas/app/app.dart';
+import 'package:moneva_finanzas/core/domain/period_totals.dart';
+import 'package:moneva_finanzas/features/movements/application/movements_providers.dart';
+import 'package:moneva_finanzas/features/movements/domain/movement.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
