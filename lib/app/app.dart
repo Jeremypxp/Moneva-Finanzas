@@ -4,13 +4,13 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'router.dart';
 import 'theme.dart';
 
-class FinanzasApp extends StatelessWidget {
-  const FinanzasApp({super.key});
+class MonevaApp extends StatelessWidget {
+  const MonevaApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp.router(
-      title: 'Finanzas',
+      title: 'Moneva',
       debugShowCheckedModeBanner: false,
       theme: buildAppTheme(),
       routerConfig: appRouter,

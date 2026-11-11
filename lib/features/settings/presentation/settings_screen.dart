@@ -149,7 +149,7 @@ class SettingsScreen extends StatelessWidget {
               const Divider(height: 1, indent: 58),
               ListTile(
                 leading: const _LeadingIcon(icon: Icons.info_outline_rounded),
-                title: const Text('Acerca de Finanzas'),
+                title: const Text('Acerca de Moneva'),
                 trailing: Text(
                   '1.0.0',
                   style: theme.textTheme.bodySmall?.copyWith(
@@ -192,7 +192,7 @@ class SettingsScreen extends StatelessWidget {
     showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Finanzas'),
+        title: const Text('Moneva'),
         content: const Text(
           'Versión 1.0.0\n\n'
           'Una app personal para registrar ingresos y gastos en soles, '

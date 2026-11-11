@@ -1,7 +1,11 @@
-# Finanzas
+# Moneva
 
-Aplicación Android personal para registrar ingresos y gastos en soles peruanos
-(PEN), entender la semana y revisar el historial sin conexión.
+**Moneva** (nombre provisional) es una aplicación Android personal para registrar
+ingresos y gastos en soles peruanos (PEN), entender la semana y revisar el
+historial sin conexión.
+
+> El nombre visible es «Moneva». El identificador técnico del paquete sigue siendo
+> `com.personal.finanzas.app_finanzas` para no romper instalaciones ni firmas.
 
 Estado inicial **vacío**: no incluye movimientos de ejemplo ni datos financieros
 reales. Solo se siembran 14 categorías útiles (9 de gasto y 5 de ingreso).

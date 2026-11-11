@@ -31,7 +31,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [databaseProvider.overrideWithValue(database)],
-        child: const FinanzasApp(),
+        child: const MonevaApp(),
       ),
     );
     await tester.pumpAndSettle();
@@ -97,7 +97,7 @@ void main() {
 
     // Exportación CSV real a archivo temporal (sin abrir el menú del sistema).
     final container = ProviderScope.containerOf(
-      tester.element(find.byType(FinanzasApp)),
+      tester.element(find.byType(MonevaApp)),
     );
     final exporter = MovementCsvExporter(
       container.read(movementsRepositoryProvider),

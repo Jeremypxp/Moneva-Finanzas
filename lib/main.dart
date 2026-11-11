@@ -9,5 +9,5 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   Intl.defaultLocale = 'es_PE';
   await initializeDateFormatting('es_PE');
-  runApp(const ProviderScope(child: FinanzasApp()));
+  runApp(const ProviderScope(child: MonevaApp()));
 }

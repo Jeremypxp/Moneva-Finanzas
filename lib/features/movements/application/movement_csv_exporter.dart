@@ -64,9 +64,9 @@ class MovementCsvExporter {
     final shareResult = await SharePlus.instance.share(
       ShareParams(
         files: [XFile(generated.filePath, mimeType: 'text/csv')],
-        subject: 'Movimientos de Finanzas',
+        subject: 'Movimientos de Moneva',
         text:
-            'Historial exportado desde Finanzas (${generated.rowCount} movimientos).',
+            'Historial exportado desde Moneva (${generated.rowCount} movimientos).',
       ),
     );
 

@@ -28,7 +28,7 @@ void main() {
             (ref) => Stream.value(const <MovementWithCategory>[]),
           ),
         ],
-        child: const FinanzasApp(),
+        child: const MonevaApp(),
       ),
     );
     await tester.pumpAndSettle();
@@ -36,5 +36,19 @@ void main() {
     expect(find.text('Tu resumen'), findsOneWidget);
     expect(find.text('Tu historial está vacío'), findsOneWidget);
     expect(find.text('Nuevo'), findsOneWidget);
+
+    await tester.tap(
+      find.descendant(
+        of: find.byType(NavigationBar),
+        matching: find.text('Ajustes'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('Acerca de Moneva'),
+      200,
+      scrollable: find.byType(Scrollable).last,
+    );
+    expect(find.text('Acerca de Moneva'), findsOneWidget);
   });
 }
