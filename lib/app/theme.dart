@@ -69,7 +69,13 @@ class FinanceColors extends ThemeExtension<FinanceColors> {
   }
 }
 
-ThemeData buildAppTheme() {
+/// Tema de la app memoizado: `ColorScheme.fromSeed` cuesta ~2 ms y no debe
+/// recalcularse en cada reconstrucción de la raíz.
+ThemeData buildAppTheme() => _appTheme;
+
+final ThemeData _appTheme = _createAppTheme();
+
+ThemeData _createAppTheme() {
   const seed = Color(0xFF146B5A);
   const background = Color(0xFFF5F5EF);
   const surface = Color(0xFFFFFFFF);

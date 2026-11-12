@@ -4,6 +4,20 @@ import 'package:intl/intl.dart';
 class AppDates {
   const AppDates._();
 
+  // Los `DateFormat` se construyen una vez: crearlos cuesta ~26 µs por llamada
+  // y se usaban en cabeceras y agrupaciones que se reconstruyen con frecuencia.
+  static final DateFormat _dayMonthFormat = DateFormat('d MMM', 'es_PE');
+  static final DateFormat _monthYearFormat = DateFormat('MMMM yyyy', 'es_PE');
+  static final DateFormat _fullDateFormat = DateFormat(
+    "EEEE, d 'de' MMMM",
+    'es_PE',
+  );
+  static final DateFormat _shortDateFormat = DateFormat('dd/MM/yyyy', 'es_PE');
+  static final DateFormat _monthYearShortFormat = DateFormat(
+    'MMM yyyy',
+    'es_PE',
+  );
+
   static DateTime dateOnly(DateTime value) =>
       DateTime(value.year, value.month, value.day);
 
@@ -45,17 +59,13 @@ class AppDates {
     );
   }
 
-  static String dayMonth(DateTime value) =>
-      DateFormat('d MMM', 'es_PE').format(value);
+  static String dayMonth(DateTime value) => _dayMonthFormat.format(value);
 
-  static String monthYear(DateTime value) =>
-      DateFormat('MMMM yyyy', 'es_PE').format(value);
+  static String monthYear(DateTime value) => _monthYearFormat.format(value);
 
-  static String fullDate(DateTime value) =>
-      DateFormat("EEEE, d 'de' MMMM", 'es_PE').format(value);
+  static String fullDate(DateTime value) => _fullDateFormat.format(value);
 
-  static String shortDate(DateTime value) =>
-      DateFormat('dd/MM/yyyy', 'es_PE').format(value);
+  static String shortDate(DateTime value) => _shortDateFormat.format(value);
 
   static String dateRange(DateTime start, DateTime endExclusive) {
     final lastDay = DateTime(
@@ -66,7 +76,7 @@ class AppDates {
     final sameMonth =
         start.month == lastDay.month && start.year == lastDay.year;
     if (sameMonth) {
-      return '${start.day} – ${lastDay.day} ${DateFormat('MMM yyyy', 'es_PE').format(lastDay)}';
+      return '${start.day} – ${lastDay.day} ${_monthYearShortFormat.format(lastDay)}';
     }
     return '${dayMonth(start)} – ${dayMonth(lastDay)} ${lastDay.year}';
   }

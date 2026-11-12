@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
 
 import '../../../app/theme.dart';
 import '../../../core/domain/period_totals.dart';
@@ -86,7 +85,7 @@ class _Header extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final today = DateTime.now();
-    final date = DateFormat("EEEE, d 'de' MMMM", 'es_PE').format(today);
+    final date = AppDates.fullDate(today);
     final capitalized = date.isEmpty
         ? date
         : '${date[0].toUpperCase()}${date.substring(1)}';
