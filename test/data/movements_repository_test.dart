@@ -1,5 +1,6 @@
 import 'package:moneva_finanzas/core/database/app_database.dart';
 import 'package:moneva_finanzas/core/domain/movement_type.dart';
+import 'package:moneva_finanzas/core/formatting/money.dart';
 import 'package:moneva_finanzas/features/categories/data/categories_repository.dart';
 import 'package:moneva_finanzas/features/movements/data/movements_repository.dart';
 import 'package:moneva_finanzas/features/movements/domain/movement.dart';
@@ -171,5 +172,70 @@ void main() {
     );
     expect(secondPage.items, hasLength(1));
     expect(secondPage.hasMore, isFalse);
+  });
+
+  test('rechaza importes no positivos y superiores al máximo', () async {
+    final all = await categories.fetchAll();
+    final expense = all.firstWhere(
+      (category) => category.type == MovementType.expense,
+    );
+
+    for (final amount in [0, -100, Money.maxCents + 1]) {
+      await expectLater(
+        movements.create(
+          MovementDraft(
+            type: MovementType.expense,
+            amountCents: amount,
+            categoryId: expense.id,
+            occurredOn: DateTime(2026, 11, 10),
+          ),
+        ),
+        throwsA(isA<ArgumentError>()),
+      );
+    }
+  });
+
+  test('rechaza una categoría que no corresponde al tipo', () async {
+    final all = await categories.fetchAll();
+    final income = all.firstWhere(
+      (category) => category.type == MovementType.income,
+    );
+
+    await expectLater(
+      movements.create(
+        MovementDraft(
+          type: MovementType.expense,
+          amountCents: 500,
+          categoryId: income.id,
+          occurredOn: DateTime(2026, 11, 10),
+        ),
+      ),
+      throwsA(isA<ArgumentError>()),
+    );
+    expect(
+      await movements.fetchPage(
+        filter: MovementFilter.initial(DateTime(2026, 11, 10)),
+        limit: 10,
+        offset: 0,
+      ),
+      isA<MovementPage>().having((page) => page.items, 'items', isEmpty),
+    );
+  });
+
+  test('rechaza rangos de fechas vacíos o invertidos', () async {
+    final filter = MovementFilter(
+      preset: MovementPeriodPreset.custom,
+      start: DateTime(2026, 11, 10),
+      endExclusive: DateTime(2026, 11, 10),
+    );
+
+    expect(
+      () => movements.fetchPage(filter: filter, limit: 10, offset: 0),
+      throwsA(isA<ArgumentError>()),
+    );
+    expect(
+      () => movements.fetchForExport(filter),
+      throwsA(isA<ArgumentError>()),
+    );
   });
 }

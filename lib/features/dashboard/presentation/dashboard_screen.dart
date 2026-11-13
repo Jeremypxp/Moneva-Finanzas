@@ -20,6 +20,8 @@ class DashboardScreen extends ConsumerWidget {
     final totals = ref.watch(weeklyTotalsProvider);
     final recent = ref.watch(recentMovementsProvider);
     final range = ref.watch(weekRangeProvider);
+    final balanceCents = totals.asData?.value.balanceCents;
+    final showBalanceWarning = balanceCents != null && balanceCents < 0;
 
     return Scaffold(
       body: SafeArea(
@@ -50,6 +52,13 @@ class DashboardScreen extends ConsumerWidget {
                   child: _WeekSummaryCard(totals: totals, range: range),
                 ),
               ),
+              if (showBalanceWarning)
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
+                  sliver: SliverToBoxAdapter(
+                    child: _NegativeBalanceBanner(excessCents: -balanceCents),
+                  ),
+                ),
               SliverPadding(
                 padding: const EdgeInsets.fromLTRB(20, 26, 20, 0),
                 sliver: SliverToBoxAdapter(
@@ -324,6 +333,70 @@ class _WeekSummaryCard extends ConsumerWidget {
               ),
             ),
           ],
+        ],
+      ),
+    );
+  }
+}
+
+class _NegativeBalanceBanner extends StatelessWidget {
+  const _NegativeBalanceBanner({required this.excessCents});
+
+  final int excessCents;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.extension<FinanceColors>()!;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: colors.warningSoft,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: colors.warningBorder),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: colors.warning.withValues(alpha: 0.14),
+              borderRadius: BorderRadius.circular(11),
+            ),
+            child: Icon(
+              Icons.warning_amber_rounded,
+              color: colors.warning,
+              size: 21,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Tus gastos superan tus ingresos registrados',
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    color: colors.warningText,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 5),
+                Text(
+                  'Según los movimientos anotados, llevas '
+                  '${Money.format(excessCents)} más en gastos que en ingresos '
+                  'esta semana. Si esta tendencia continúa, podrías necesitar '
+                  'ajustar tu presupuesto. Revisa tus movimientos.',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: colors.warningText,
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );

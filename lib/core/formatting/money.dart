@@ -8,6 +8,12 @@ class Money {
 
   static const currencySymbol = 'S/';
 
+  /// Tope admitido por [parseToCents]: 9 dígitos enteros.
+  ///
+  /// 999 999 999,99 soles. Cabe holgadamente en un `int` de 64 bits y evita
+  /// desbordamientos si otro punto de entrada construye un borrador a mano.
+  static const maxCents = 99999999999;
+
   // Reutilizar el formateador evita reconstruir el patrón de `es_PE` en cada
   // importe dibujado (medido: ~8 µs por llamada evitable en listas largas).
   static final NumberFormat _decimalPattern = NumberFormat.decimalPattern(

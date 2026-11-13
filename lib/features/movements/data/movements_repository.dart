@@ -5,6 +5,7 @@ import '../../../core/domain/category.dart';
 import '../../../core/domain/movement_type.dart';
 import '../../../core/domain/period_totals.dart';
 import '../../../core/formatting/dates.dart';
+import '../../../core/formatting/money.dart';
 import '../domain/movement.dart';
 
 abstract interface class MovementsRepository {
@@ -81,6 +82,7 @@ class DriftMovementsRepository implements MovementsRepository {
     required int limit,
     required int offset,
   }) async {
+    _validateRange(filter);
     final query = _joinedQuery()
       ..where(_filterExpression(filter))
       ..orderBy([
@@ -99,6 +101,7 @@ class DriftMovementsRepository implements MovementsRepository {
   Future<List<MovementWithCategory>> fetchForExport(
     MovementFilter filter,
   ) async {
+    _validateRange(filter);
     final query = _joinedQuery()
       ..where(_filterExpression(filter))
       ..orderBy([
@@ -119,8 +122,8 @@ class DriftMovementsRepository implements MovementsRepository {
   }
 
   @override
-  Future<int> create(MovementDraft draft) {
-    _validate(draft);
+  Future<int> create(MovementDraft draft) async {
+    await _validate(draft);
     return _db
         .into(_db.movements)
         .insert(
@@ -136,7 +139,7 @@ class DriftMovementsRepository implements MovementsRepository {
 
   @override
   Future<void> update(int id, MovementDraft draft) async {
-    _validate(draft);
+    await _validate(draft);
     final updated =
         await (_db.update(
           _db.movements,
@@ -221,12 +224,31 @@ class DriftMovementsRepository implements MovementsRepository {
     );
   }
 
-  void _validate(MovementDraft draft) {
+  void _validateRange(MovementFilter filter) {
+    if (!filter.start.isBefore(filter.endExclusive)) {
+      throw ArgumentError('El rango de fechas no es válido.');
+    }
+  }
+
+  Future<void> _validate(MovementDraft draft) async {
     if (draft.amountCents <= 0) {
       throw ArgumentError('El importe debe ser mayor que cero.');
     }
+    if (draft.amountCents > Money.maxCents) {
+      throw ArgumentError('El importe supera el máximo permitido.');
+    }
     if (draft.categoryId <= 0) {
       throw ArgumentError('Selecciona una categoría.');
+    }
+    final category =
+        await (_db.select(_db.categories)
+              ..where((category) => category.id.equals(draft.categoryId)))
+            .getSingleOrNull();
+    if (category == null) {
+      throw ArgumentError('Selecciona una categoría válida.');
+    }
+    if (category.type != draft.type.dbValue) {
+      throw ArgumentError('La categoría no corresponde al tipo de movimiento.');
     }
   }
 
