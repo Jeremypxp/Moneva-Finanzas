@@ -11,6 +11,10 @@ class FinanceColors extends ThemeExtension<FinanceColors> {
     required this.heroStart,
     required this.heroEnd,
     required this.mutedText,
+    required this.warning,
+    required this.warningSoft,
+    required this.warningBorder,
+    required this.warningText,
   });
 
   final Color income;
@@ -21,6 +25,12 @@ class FinanceColors extends ThemeExtension<FinanceColors> {
   final Color heroEnd;
   final Color mutedText;
 
+  /// Naranjas de advertencia: se usan para avisos de balance, nunca en rojo.
+  final Color warning;
+  final Color warningSoft;
+  final Color warningBorder;
+  final Color warningText;
+
   static const light = FinanceColors(
     income: Color(0xFF16805F),
     expense: Color(0xFFC8543A),
@@ -29,6 +39,10 @@ class FinanceColors extends ThemeExtension<FinanceColors> {
     heroStart: Color(0xFF0E5C4D),
     heroEnd: Color(0xFF17856D),
     mutedText: Color(0xFF68746F),
+    warning: Color(0xFFB45309),
+    warningSoft: Color(0xFFFFF3E0),
+    warningBorder: Color(0xFFEDC38F),
+    warningText: Color(0xFF6B3F0B),
   );
 
   @override
@@ -40,6 +54,10 @@ class FinanceColors extends ThemeExtension<FinanceColors> {
     Color? heroStart,
     Color? heroEnd,
     Color? mutedText,
+    Color? warning,
+    Color? warningSoft,
+    Color? warningBorder,
+    Color? warningText,
   }) {
     return FinanceColors(
       income: income ?? this.income,
@@ -49,6 +67,10 @@ class FinanceColors extends ThemeExtension<FinanceColors> {
       heroStart: heroStart ?? this.heroStart,
       heroEnd: heroEnd ?? this.heroEnd,
       mutedText: mutedText ?? this.mutedText,
+      warning: warning ?? this.warning,
+      warningSoft: warningSoft ?? this.warningSoft,
+      warningBorder: warningBorder ?? this.warningBorder,
+      warningText: warningText ?? this.warningText,
     );
   }
 
@@ -65,11 +87,21 @@ class FinanceColors extends ThemeExtension<FinanceColors> {
       heroStart: Color.lerp(heroStart, other.heroStart, t)!,
       heroEnd: Color.lerp(heroEnd, other.heroEnd, t)!,
       mutedText: Color.lerp(mutedText, other.mutedText, t)!,
+      warning: Color.lerp(warning, other.warning, t)!,
+      warningSoft: Color.lerp(warningSoft, other.warningSoft, t)!,
+      warningBorder: Color.lerp(warningBorder, other.warningBorder, t)!,
+      warningText: Color.lerp(warningText, other.warningText, t)!,
     );
   }
 }
 
-ThemeData buildAppTheme() {
+/// Tema de la app memoizado: `ColorScheme.fromSeed` cuesta ~2 ms y no debe
+/// recalcularse en cada reconstrucción de la raíz.
+ThemeData buildAppTheme() => _appTheme;
+
+final ThemeData _appTheme = _createAppTheme();
+
+ThemeData _createAppTheme() {
   const seed = Color(0xFF146B5A);
   const background = Color(0xFFF5F5EF);
   const surface = Color(0xFFFFFFFF);

@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 
 import '../../../app/di.dart';
 import '../../../app/theme.dart';
+import '../../../core/domain/balance_projection.dart';
 import '../../../core/domain/category.dart';
 import '../../../core/domain/movement_type.dart';
 import '../../../core/formatting/dates.dart';
@@ -15,6 +16,7 @@ import '../../../core/widgets/category_avatar.dart';
 import '../../categories/application/categories_providers.dart';
 import '../application/movements_providers.dart';
 import '../domain/movement.dart';
+import 'widgets/negative_balance_dialog.dart';
 
 class MovementFormScreen extends ConsumerStatefulWidget {
   const MovementFormScreen({this.movementId, super.key});
@@ -38,8 +40,10 @@ class _MovementFormScreenState extends ConsumerState<MovementFormScreen> {
   bool _notFound = false;
   bool _saving = false;
   bool _deleting = false;
+  bool _validating = false;
   bool _categoryError = false;
   Object? _loadError;
+  Movement? _original;
 
   bool get _isEditing => widget.movementId != null;
 
@@ -85,6 +89,7 @@ class _MovementFormScreenState extends ConsumerState<MovementFormScreen> {
         _date = movement.occurredOn;
         _amountController.text = _editableAmount(movement.amountCents);
         _noteController.text = movement.note ?? '';
+        _original = movement;
         _loading = false;
       });
     } catch (error) {
@@ -115,6 +120,11 @@ class _MovementFormScreenState extends ConsumerState<MovementFormScreen> {
   }
 
   Future<void> _save() async {
+    // Evita guardar dos veces por toques repetidos antes de que el botón se
+    // deshabilite.
+    if (_saving || _deleting || _validating) {
+      return;
+    }
     FocusScope.of(context).unfocus();
     final formValid = _formKey.currentState?.validate() ?? false;
     final categoryValid = _categoryId != null;
@@ -130,7 +140,22 @@ class _MovementFormScreenState extends ConsumerState<MovementFormScreen> {
       return;
     }
 
-    setState(() => _saving = true);
+    // La categoría debe existir y coincidir con el tipo elegido. Si el stream
+    // aún no ha emitido, el repositorio hará la misma comprobación al guardar.
+    final categories = ref.read(categoriesProvider).asData?.value;
+    if (categories != null) {
+      final selectedCategory = categories
+          .where((category) => category.id == _categoryId)
+          .firstOrNull;
+      if (selectedCategory == null || selectedCategory.type != _type) {
+        setState(() {
+          _categoryId = null;
+          _categoryError = true;
+        });
+        return;
+      }
+    }
+
     final draft = MovementDraft(
       type: _type,
       amountCents: cents,
@@ -139,6 +164,35 @@ class _MovementFormScreenState extends ConsumerState<MovementFormScreen> {
       note: _noteController.text,
     );
 
+    // Solo los gastos pueden dejar el periodo en negativo. La consulta es
+    // puntual (una sola lectura) y únicamente en la ruta de guardado.
+    if (draft.type.isExpense) {
+      final check = await _projectBalance(draft);
+      if (!mounted) {
+        return;
+      }
+      if (check != null && check.projection.shouldWarn) {
+        final confirmed = await showNegativeBalanceDialog(
+          context,
+          projection: check.projection,
+          start: check.start,
+          endExclusive: check.endExclusive,
+        );
+        if (!mounted) {
+          return;
+        }
+        if (!confirmed) {
+          setState(() => _validating = false);
+          return;
+        }
+      }
+    }
+
+    setState(() {
+      _validating = false;
+      _saving = true;
+    });
+
     try {
       final repository = ref.read(movementsRepositoryProvider);
       if (_isEditing) {
@@ -146,6 +200,7 @@ class _MovementFormScreenState extends ConsumerState<MovementFormScreen> {
       } else {
         await repository.create(draft);
       }
+      // Una sola invalidación: el historial y el reporte se recalculan una vez.
       invalidateFinancialData(ref);
       if (!mounted) {
         return;
@@ -164,7 +219,10 @@ class _MovementFormScreenState extends ConsumerState<MovementFormScreen> {
       if (!mounted) {
         return;
       }
-      setState(() => _saving = false);
+      setState(() {
+        _saving = false;
+        _validating = false;
+      });
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(
@@ -179,7 +237,49 @@ class _MovementFormScreenState extends ConsumerState<MovementFormScreen> {
     }
   }
 
+  /// Consulta los totales de la semana destino y proyecta el borrador.
+  ///
+  /// Es una lectura puntual, no una suscripción permanente: no añade trabajo al
+  /// arranque ni a la navegación. Si la consulta falla, se permite guardar sin
+  /// advertencia para no bloquear el registro por un problema auxiliar.
+  Future<
+    ({PeriodProjection projection, DateTime start, DateTime endExclusive})?
+  >
+  _projectBalance(MovementDraft draft) async {
+    setState(() => _validating = true);
+    try {
+      final start = AppDates.startOfWeek(draft.occurredOn);
+      final endExclusive = AppDates.endOfWeekExclusive(draft.occurredOn);
+      final totals = await ref
+          .read(movementsRepositoryProvider)
+          .watchTotals(start: start, endExclusive: endExclusive)
+          .first;
+      final original = _original;
+      final replacesOriginal =
+          original != null &&
+          !original.occurredOn.isBefore(start) &&
+          original.occurredOn.isBefore(endExclusive);
+
+      return (
+        projection: projectPeriod(
+          current: totals,
+          type: draft.type,
+          amountCents: draft.amountCents,
+          replacedType: replacesOriginal ? original.type : null,
+          replacedAmountCents: replacesOriginal ? original.amountCents : null,
+        ),
+        start: start,
+        endExclusive: endExclusive,
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<void> _delete() async {
+    if (_saving || _deleting || _validating) {
+      return;
+    }
     final colors = Theme.of(context).extension<FinanceColors>()!;
     final confirmed = await showDialog<bool>(
       context: context,
@@ -235,7 +335,7 @@ class _MovementFormScreenState extends ConsumerState<MovementFormScreen> {
     final categories = (categoriesAsync.asData?.value ?? const <Category>[])
         .where((category) => category.type == _type)
         .toList();
-    final busy = _saving || _deleting;
+    final busy = _saving || _deleting || _validating;
 
     if (_loading) {
       return Scaffold(
@@ -562,6 +662,8 @@ class _MovementFormScreenState extends ConsumerState<MovementFormScreen> {
             label: Text(
               _saving
                   ? 'Guardando…'
+                  : _validating
+                  ? 'Comprobando…'
                   : _isEditing
                   ? 'Guardar cambios'
                   : 'Guardar movimiento',

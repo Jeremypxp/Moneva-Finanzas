@@ -53,8 +53,18 @@ void main() {
     await tester.tap(find.text('Guardar movimiento'));
     await tester.pumpAndSettle();
 
-    // El resumen refleja el gasto.
+    // Sin ingresos registrados, el gasto deja la semana en negativo: se pide
+    // confirmación explícita antes de guardar.
+    expect(find.text('Balance negativo'), findsOneWidget);
+    await tester.tap(find.text('Registrar gasto'));
+    await tester.pumpAndSettle();
+
+    // El resumen refleja el gasto y muestra el aviso persistente.
     expect(find.text('- S/ 25,50'), findsOneWidget);
+    expect(
+      find.text('Tus gastos superan tus ingresos registrados'),
+      findsOneWidget,
+    );
 
     // Historial y hoja de filtros.
     await tester.tap(
