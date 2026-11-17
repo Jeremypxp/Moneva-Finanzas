@@ -116,6 +116,47 @@ void main() {
     expect(await movements.findById(id), isNull);
   });
 
+  test('el total acumulado suma movimientos de cualquier fecha', () async {
+    final all = await categories.fetchAll();
+    final expense = all.firstWhere(
+      (category) => category.type == MovementType.expense,
+    );
+    final income = all.firstWhere(
+      (category) => category.type == MovementType.income,
+    );
+
+    await movements.create(
+      MovementDraft(
+        type: MovementType.income,
+        amountCents: 16850,
+        categoryId: income.id,
+        occurredOn: DateTime(2026, 11, 2),
+      ),
+    );
+    await movements.create(
+      MovementDraft(
+        type: MovementType.expense,
+        amountCents: 2500,
+        categoryId: expense.id,
+        occurredOn: DateTime(2026, 11, 16),
+      ),
+    );
+
+    final week = await movements
+        .watchTotals(
+          start: DateTime(2026, 11, 16),
+          endExclusive: DateTime(2026, 11, 23),
+        )
+        .first;
+    expect(week.incomeCents, 0);
+    expect(week.expenseCents, 2500);
+
+    final allTime = await movements.watchAllTotals().first;
+    expect(allTime.incomeCents, 16850);
+    expect(allTime.expenseCents, 2500);
+    expect(allTime.balanceCents, 14350);
+  });
+
   test('no elimina categorías con movimientos asociados', () async {
     final all = await categories.fetchAll();
     final expense = all.firstWhere(

@@ -14,6 +14,9 @@ abstract interface class MovementsRepository {
     required DateTime endExclusive,
   });
 
+  /// Totales de todos los movimientos registrados, sin filtro por fechas.
+  Stream<PeriodTotals> watchAllTotals();
+
   Stream<List<MovementWithCategory>> watchRecent({int limit = 5});
 
   Future<MovementPage> fetchPage({
@@ -43,18 +46,27 @@ class DriftMovementsRepository implements MovementsRepository {
     required DateTime start,
     required DateTime endExclusive,
   }) {
+    return _watchTotals(start: start, endExclusive: endExclusive);
+  }
+
+  @override
+  Stream<PeriodTotals> watchAllTotals() => _watchTotals();
+
+  /// Agregación en SQL. Si no se indica rango, suma todos los movimientos.
+  Stream<PeriodTotals> _watchTotals({DateTime? start, DateTime? endExclusive}) {
     final income = _db.movements.amountCents.sum(
       filter: _db.movements.type.equals(MovementType.income.dbValue),
     );
     final expense = _db.movements.amountCents.sum(
       filter: _db.movements.type.equals(MovementType.expense.dbValue),
     );
-    final query = _db.selectOnly(_db.movements)
-      ..addColumns([income, expense])
-      ..where(
+    final query = _db.selectOnly(_db.movements)..addColumns([income, expense]);
+    if (start != null && endExclusive != null) {
+      query.where(
         _db.movements.occurredOn.isBiggerOrEqualValue(start) &
             _db.movements.occurredOn.isSmallerThanValue(endExclusive),
       );
+    }
 
     return query.watchSingle().map((row) {
       return PeriodTotals(

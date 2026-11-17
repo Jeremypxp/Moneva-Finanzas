@@ -171,12 +171,10 @@ class _MovementFormScreenState extends ConsumerState<MovementFormScreen> {
       if (!mounted) {
         return;
       }
-      if (check != null && check.projection.shouldWarn) {
+      if (check != null && check.shouldWarn) {
         final confirmed = await showNegativeBalanceDialog(
           context,
-          projection: check.projection,
-          start: check.start,
-          endExclusive: check.endExclusive,
+          projection: check,
         );
         if (!mounted) {
           return;
@@ -237,39 +235,26 @@ class _MovementFormScreenState extends ConsumerState<MovementFormScreen> {
     }
   }
 
-  /// Consulta los totales de la semana destino y proyecta el borrador.
+  /// Consulta el total acumulado y proyecta el borrador.
   ///
   /// Es una lectura puntual, no una suscripción permanente: no añade trabajo al
   /// arranque ni a la navegación. Si la consulta falla, se permite guardar sin
   /// advertencia para no bloquear el registro por un problema auxiliar.
-  Future<
-    ({PeriodProjection projection, DateTime start, DateTime endExclusive})?
-  >
-  _projectBalance(MovementDraft draft) async {
+  Future<PeriodProjection?> _projectBalance(MovementDraft draft) async {
     setState(() => _validating = true);
     try {
-      final start = AppDates.startOfWeek(draft.occurredOn);
-      final endExclusive = AppDates.endOfWeekExclusive(draft.occurredOn);
       final totals = await ref
           .read(movementsRepositoryProvider)
-          .watchTotals(start: start, endExclusive: endExclusive)
+          .watchAllTotals()
           .first;
       final original = _original;
-      final replacesOriginal =
-          original != null &&
-          !original.occurredOn.isBefore(start) &&
-          original.occurredOn.isBefore(endExclusive);
 
-      return (
-        projection: projectPeriod(
-          current: totals,
-          type: draft.type,
-          amountCents: draft.amountCents,
-          replacedType: replacesOriginal ? original.type : null,
-          replacedAmountCents: replacesOriginal ? original.amountCents : null,
-        ),
-        start: start,
-        endExclusive: endExclusive,
+      return projectPeriod(
+        current: totals,
+        type: draft.type,
+        amountCents: draft.amountCents,
+        replacedType: original?.type,
+        replacedAmountCents: original?.amountCents,
       );
     } catch (_) {
       return null;

@@ -2,47 +2,33 @@ import 'package:flutter/material.dart';
 
 import '../../../../app/theme.dart';
 import '../../../../core/domain/balance_projection.dart';
-import '../../../../core/formatting/dates.dart';
 import '../../../../core/formatting/money.dart';
 
-/// Pide confirmación antes de registrar un gasto que deja el periodo en
-/// balance negativo.
+/// Pide confirmación antes de registrar un gasto que deja el saldo total en
+/// negativo.
 ///
 /// Devuelve `true` solo si la persona elige explícitamente continuar. Cerrar
 /// con la X, tocar fuera o pulsar «Cancelar» devuelve `false`.
 Future<bool> showNegativeBalanceDialog(
   BuildContext context, {
   required PeriodProjection projection,
-  required DateTime start,
-  required DateTime endExclusive,
 }) async {
   final confirmed = await showDialog<bool>(
     context: context,
-    builder: (dialogContext) => _NegativeBalanceDialog(
-      projection: projection,
-      start: start,
-      endExclusive: endExclusive,
-    ),
+    builder: (dialogContext) => _NegativeBalanceDialog(projection: projection),
   );
   return confirmed ?? false;
 }
 
 class _NegativeBalanceDialog extends StatelessWidget {
-  const _NegativeBalanceDialog({
-    required this.projection,
-    required this.start,
-    required this.endExclusive,
-  });
+  const _NegativeBalanceDialog({required this.projection});
 
   final PeriodProjection projection;
-  final DateTime start;
-  final DateTime endExclusive;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colors = theme.extension<FinanceColors>()!;
-    final period = AppDates.dateRange(start, endExclusive);
 
     return AlertDialog(
       titlePadding: const EdgeInsets.fromLTRB(20, 16, 8, 0),
@@ -84,8 +70,8 @@ class _NegativeBalanceDialog extends StatelessWidget {
         ],
       ),
       content: Text(
-        'Este gasto supera tus ingresos registrados para la semana del '
-        '$period. Si lo registras, el balance de ese periodo quedará en '
+        'Este gasto supera tus ingresos registrados. Si lo registras, tu '
+        'saldo total quedará en '
         '${Money.format(projection.balanceCents)}. '
         'Verifica si falta registrar algún ingreso.',
         style: theme.textTheme.bodyMedium,

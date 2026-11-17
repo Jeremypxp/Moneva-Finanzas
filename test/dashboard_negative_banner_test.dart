@@ -25,7 +25,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          weeklyTotalsProvider.overrideWith((ref) => Stream.value(totals)),
+          allTimeTotalsProvider.overrideWith((ref) => Stream.value(totals)),
           recentMovementsProvider.overrideWith(
             (ref) => Stream.value(const <MovementWithCategory>[]),
           ),
