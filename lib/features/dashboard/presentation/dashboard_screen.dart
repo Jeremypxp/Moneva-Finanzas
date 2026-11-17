@@ -17,22 +17,22 @@ class DashboardScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final totals = ref.watch(weeklyTotalsProvider);
+    final totals = ref.watch(allTimeTotalsProvider);
     final recent = ref.watch(recentMovementsProvider);
-    final range = ref.watch(weekRangeProvider);
     final balanceCents = totals.asData?.value.balanceCents;
     final showBalanceWarning = balanceCents != null && balanceCents < 0;
+    final data = totals.asData?.value ?? PeriodTotals.empty;
 
     return Scaffold(
       body: SafeArea(
         bottom: false,
         child: RefreshIndicator(
           onRefresh: () async {
-            ref.invalidate(weeklyTotalsProvider);
+            ref.invalidate(allTimeTotalsProvider);
             ref.invalidate(recentMovementsProvider);
             try {
               await Future.wait([
-                ref.read(weeklyTotalsProvider.future),
+                ref.read(allTimeTotalsProvider.future),
                 ref.read(recentMovementsProvider.future),
               ]);
             } catch (_) {
@@ -49,14 +49,16 @@ class DashboardScreen extends ConsumerWidget {
               SliverPadding(
                 padding: const EdgeInsets.fromLTRB(20, 22, 20, 0),
                 sliver: SliverToBoxAdapter(
-                  child: _WeekSummaryCard(totals: totals, range: range),
+                  child: _BalanceSummaryCard(totals: totals),
                 ),
               ),
               if (showBalanceWarning)
                 SliverPadding(
                   padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
                   sliver: SliverToBoxAdapter(
-                    child: _NegativeBalanceBanner(excessCents: -balanceCents),
+                    child: _NegativeBalanceBanner(
+                      excessCents: data.expenseCents - data.incomeCents,
+                    ),
                   ),
                 ),
               SliverPadding(
@@ -145,7 +147,7 @@ class _Header extends StatelessWidget {
         Text('Tu resumen', style: theme.textTheme.headlineMedium),
         const SizedBox(height: 4),
         Text(
-          'Todo lo importante de tu semana, de un vistazo.',
+          'Todo lo importante de tus finanzas, de un vistazo.',
           style: theme.textTheme.bodyMedium?.copyWith(
             color: theme.colorScheme.onSurfaceVariant,
           ),
@@ -155,11 +157,10 @@ class _Header extends StatelessWidget {
   }
 }
 
-class _WeekSummaryCard extends ConsumerWidget {
-  const _WeekSummaryCard({required this.totals, required this.range});
+class _BalanceSummaryCard extends ConsumerWidget {
+  const _BalanceSummaryCard({required this.totals});
 
   final AsyncValue<PeriodTotals> totals;
-  final ({DateTime start, DateTime endExclusive}) range;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -209,13 +210,13 @@ class _WeekSummaryCard extends ConsumerWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
-                      Icons.calendar_today_rounded,
+                      Icons.account_balance_wallet_rounded,
                       color: Colors.white,
                       size: 12,
                     ),
                     SizedBox(width: 6),
                     Text(
-                      'SEMANA ACTUAL',
+                      'SALDO ACTUAL',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 10,
@@ -230,7 +231,7 @@ class _WeekSummaryCard extends ConsumerWidget {
           ),
           const SizedBox(height: 20),
           Text(
-            'Balance',
+            'Total disponible',
             style: TextStyle(
               color: Colors.white.withValues(alpha: 0.75),
               fontSize: 13,
@@ -268,24 +269,15 @@ class _WeekSummaryCard extends ConsumerWidget {
                 ),
               ),
             ),
-          const SizedBox(height: 2),
-          Text(
-            AppDates.dateRange(range.start, range.endExclusive),
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.78),
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
           const SizedBox(height: 4),
           Text(
-            isNegative
-                ? 'Los gastos superan a los ingresos esta semana.'
-                : data.incomeCents == 0 && data.expenseCents == 0
-                ? 'Aún no hay movimientos esta semana.'
-                : 'Vas dentro de tu semana.',
+            data.incomeCents == 0 && data.expenseCents == 0
+                ? 'Aún no has registrado movimientos.'
+                : isNegative
+                ? 'Tus gastos superan tus ingresos registrados.'
+                : 'Ingresos menos gastos de todos tus movimientos.',
             style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.65),
+              color: Colors.white.withValues(alpha: 0.7),
               fontSize: 11,
             ),
           ),
@@ -319,7 +311,7 @@ class _WeekSummaryCard extends ConsumerWidget {
           if (totals.hasError) ...[
             const SizedBox(height: 12),
             TextButton.icon(
-              onPressed: () => ref.invalidate(weeklyTotalsProvider),
+              onPressed: () => ref.invalidate(allTimeTotalsProvider),
               style: TextButton.styleFrom(
                 foregroundColor: Colors.white,
                 padding: EdgeInsets.zero,
@@ -387,8 +379,8 @@ class _NegativeBalanceBanner extends StatelessWidget {
                 Text(
                   'Según los movimientos anotados, llevas '
                   '${Money.format(excessCents)} más en gastos que en ingresos '
-                  'esta semana. Si esta tendencia continúa, podrías necesitar '
-                  'ajustar tu presupuesto. Revisa tus movimientos.',
+                  'en total. Si esta tendencia continúa, podrías necesitar '
+                  'ajustar tus finanzas. Revisa tus movimientos.',
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: colors.warningText,
                     height: 1.4,

@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../app/di.dart';
 import '../../../core/domain/movement_type.dart';
 import '../../../core/domain/period_totals.dart';
-import '../../../core/formatting/dates.dart';
 import '../../reports/application/reports_providers.dart';
 import '../domain/movement.dart';
 
@@ -128,21 +127,9 @@ class MovementHistoryController extends AsyncNotifier<MovementHistoryState> {
   }
 }
 
-final weekRangeProvider = Provider<({DateTime start, DateTime endExclusive})>((
-  ref,
-) {
-  final now = DateTime.now();
-  return (
-    start: AppDates.startOfWeek(now),
-    endExclusive: AppDates.endOfWeekExclusive(now),
-  );
-});
-
-final weeklyTotalsProvider = StreamProvider<PeriodTotals>((ref) {
-  final range = ref.watch(weekRangeProvider);
-  return ref
-      .watch(movementsRepositoryProvider)
-      .watchTotals(start: range.start, endExclusive: range.endExclusive);
+/// Balance de todos los movimientos, independiente de la semana actual.
+final allTimeTotalsProvider = StreamProvider<PeriodTotals>((ref) {
+  return ref.watch(movementsRepositoryProvider).watchAllTotals();
 });
 
 final recentMovementsProvider = StreamProvider<List<MovementWithCategory>>((

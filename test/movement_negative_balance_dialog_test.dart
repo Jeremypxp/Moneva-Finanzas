@@ -41,6 +41,12 @@ class _FakeMovementsRepository implements MovementsRepository {
   }
 
   @override
+  Stream<PeriodTotals> watchAllTotals() async* {
+    yield current;
+    yield* _totals.stream;
+  }
+
+  @override
   Stream<List<MovementWithCategory>> watchRecent({int limit = 5}) =>
       Stream.value(const <MovementWithCategory>[]);
 
@@ -125,7 +131,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Balance negativo'), findsOneWidget);
     expect(
-      find.textContaining('el balance de ese periodo quedará en -S/ 25,50'),
+      find.textContaining('tu saldo total quedará en -S/ 25,50'),
       findsOneWidget,
     );
     await tester.tap(find.text('Cancelar'));

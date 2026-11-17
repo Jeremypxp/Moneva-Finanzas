@@ -99,10 +99,12 @@ class ReportsScreen extends ConsumerWidget {
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
                 const SizedBox(width: 5),
-                Text(
-                  'Calculado en tu dispositivo con tus datos locales.',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
+                Flexible(
+                  child: Text(
+                    'Calculado en tu dispositivo con tus datos locales.',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 ),
               ],
@@ -149,30 +151,6 @@ class _ReportContent extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: _Stat(
-                      label: 'Ingresos',
-                      amount: data.incomeCents,
-                      color: colors.income,
-                      background: colors.incomeSoft,
-                      icon: Icons.south_west_rounded,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: _Stat(
-                      label: 'Gastos',
-                      amount: data.expenseCents,
-                      color: colors.expense,
-                      background: colors.expenseSoft,
-                      icon: Icons.north_east_rounded,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 14),
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(
@@ -212,6 +190,30 @@ class _ReportContent extends StatelessWidget {
                     ),
                   ],
                 ),
+              ),
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  Expanded(
+                    child: _Stat(
+                      label: 'Ingresos',
+                      amount: data.incomeCents,
+                      color: colors.income,
+                      background: colors.incomeSoft,
+                      icon: Icons.south_west_rounded,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _Stat(
+                      label: 'Gastos',
+                      amount: data.expenseCents,
+                      color: colors.expense,
+                      background: colors.expenseSoft,
+                      icon: Icons.north_east_rounded,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
