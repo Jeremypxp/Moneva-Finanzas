@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../app/theme.dart';
 import '../application/auth_providers.dart';
 import 'widgets/auth_components.dart';
 
 /// Pantalla mostrada cuando la app se abre desde el enlace de verificación de
 /// correo de Supabase (`moneva://auth-callback/`).
+///
+/// Muestra un mensaje flotante (SnackBar) informando si la verificación se
+/// completó o falló, y permite ir a iniciar sesión.
 class EmailVerificationScreen extends ConsumerStatefulWidget {
   const EmailVerificationScreen({super.key});
 
@@ -21,32 +23,54 @@ class _EmailVerificationScreenState
   @override
   void initState() {
     super.initState();
-    // Limpia el enlace pendiente después de mostrar la pantalla, para no
-    // navegar de nuevo en cada reconstrucción.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) {
         return;
       }
-      ref.read(authDeepLinkHandlerProvider).clearPendingLink();
+      final handler = ref.read(authDeepLinkHandlerProvider);
+      final verified = handler.hasPendingLink;
+      handler.clearPendingLink();
+
+      if (verified) {
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            const SnackBar(
+              content: Text('Se ha verificado la cuenta.'),
+              backgroundColor: Color(0xFF16805F),
+              duration: Duration(seconds: 3),
+            ),
+          );
+        // Navega al login después de mostrar el mensaje flotante.
+        Future.delayed(const Duration(seconds: 2), () {
+          if (mounted) {
+            context.go('/login');
+          }
+        });
+      } else {
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Enlace inválido o expirado. Solicita un nuevo enlace de '
+                'confirmación desde el inicio de sesión.',
+              ),
+              backgroundColor: Color(0xFFC8543A),
+              duration: Duration(seconds: 4),
+            ),
+          );
+      }
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final handler = ref.watch(authDeepLinkHandlerProvider);
-    final theme = Theme.of(context);
-    final colors = theme.extension<FinanceColors>()!;
-
-    final verified = handler.hasPendingLink;
-
     return AuthScaffold(
-      title: verified ? 'Correo verificado' : 'Enlace inválido',
-      subtitle: verified
-          ? 'Tu correo ha sido confirmado. Ahora puedes iniciar sesión con tu '
-                'correo y contraseña.'
-          : 'El enlace de verificación es inválido o ha expirado. Solicita un '
-                'nuevo código de confirmación desde la pantalla de inicio de '
-                'sesión.',
+      title: 'Verificación de correo',
+      subtitle:
+          'Espera un momento mientras procesamos la confirmación de tu '
+          'correo electrónico.',
       footer: Wrap(
         alignment: WrapAlignment.center,
         crossAxisAlignment: WrapCrossAlignment.center,
@@ -60,13 +84,7 @@ class _EmailVerificationScreenState
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Icon(
-            verified
-                ? Icons.mark_email_read_rounded
-                : Icons.error_outline_rounded,
-            size: 64,
-            color: verified ? colors.income : colors.expense,
-          ),
+          const Icon(Icons.mark_email_unread_rounded, size: 64),
           const SizedBox(height: 16),
         ],
       ),
