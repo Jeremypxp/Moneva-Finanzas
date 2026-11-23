@@ -96,6 +96,21 @@ class $CategoriesTable extends Categories
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _isNecessaryMeta = const VerificationMeta(
+    'isNecessary',
+  );
+  @override
+  late final GeneratedColumn<bool> isNecessary = GeneratedColumn<bool>(
+    'is_necessary',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_necessary" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -105,6 +120,7 @@ class $CategoriesTable extends Categories
     colorValue,
     sortOrder,
     isDefault,
+    isNecessary,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -163,6 +179,15 @@ class $CategoriesTable extends Categories
         isDefault.isAcceptableOrUnknown(data['is_default']!, _isDefaultMeta),
       );
     }
+    if (data.containsKey('is_necessary')) {
+      context.handle(
+        _isNecessaryMeta,
+        isNecessary.isAcceptableOrUnknown(
+          data['is_necessary']!,
+          _isNecessaryMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -200,6 +225,10 @@ class $CategoriesTable extends Categories
         DriftSqlType.bool,
         data['${effectivePrefix}is_default'],
       )!,
+      isNecessary: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_necessary'],
+      )!,
     );
   }
 
@@ -217,6 +246,7 @@ class CategoryRow extends DataClass implements Insertable<CategoryRow> {
   final int colorValue;
   final int sortOrder;
   final bool isDefault;
+  final bool isNecessary;
   const CategoryRow({
     required this.id,
     required this.name,
@@ -225,6 +255,7 @@ class CategoryRow extends DataClass implements Insertable<CategoryRow> {
     required this.colorValue,
     required this.sortOrder,
     required this.isDefault,
+    required this.isNecessary,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -236,6 +267,7 @@ class CategoryRow extends DataClass implements Insertable<CategoryRow> {
     map['color_value'] = Variable<int>(colorValue);
     map['sort_order'] = Variable<int>(sortOrder);
     map['is_default'] = Variable<bool>(isDefault);
+    map['is_necessary'] = Variable<bool>(isNecessary);
     return map;
   }
 
@@ -248,6 +280,7 @@ class CategoryRow extends DataClass implements Insertable<CategoryRow> {
       colorValue: Value(colorValue),
       sortOrder: Value(sortOrder),
       isDefault: Value(isDefault),
+      isNecessary: Value(isNecessary),
     );
   }
 
@@ -264,6 +297,7 @@ class CategoryRow extends DataClass implements Insertable<CategoryRow> {
       colorValue: serializer.fromJson<int>(json['colorValue']),
       sortOrder: serializer.fromJson<int>(json['sortOrder']),
       isDefault: serializer.fromJson<bool>(json['isDefault']),
+      isNecessary: serializer.fromJson<bool>(json['isNecessary']),
     );
   }
   @override
@@ -277,6 +311,7 @@ class CategoryRow extends DataClass implements Insertable<CategoryRow> {
       'colorValue': serializer.toJson<int>(colorValue),
       'sortOrder': serializer.toJson<int>(sortOrder),
       'isDefault': serializer.toJson<bool>(isDefault),
+      'isNecessary': serializer.toJson<bool>(isNecessary),
     };
   }
 
@@ -288,6 +323,7 @@ class CategoryRow extends DataClass implements Insertable<CategoryRow> {
     int? colorValue,
     int? sortOrder,
     bool? isDefault,
+    bool? isNecessary,
   }) => CategoryRow(
     id: id ?? this.id,
     name: name ?? this.name,
@@ -296,6 +332,7 @@ class CategoryRow extends DataClass implements Insertable<CategoryRow> {
     colorValue: colorValue ?? this.colorValue,
     sortOrder: sortOrder ?? this.sortOrder,
     isDefault: isDefault ?? this.isDefault,
+    isNecessary: isNecessary ?? this.isNecessary,
   );
   CategoryRow copyWithCompanion(CategoriesCompanion data) {
     return CategoryRow(
@@ -308,6 +345,9 @@ class CategoryRow extends DataClass implements Insertable<CategoryRow> {
           : this.colorValue,
       sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
       isDefault: data.isDefault.present ? data.isDefault.value : this.isDefault,
+      isNecessary: data.isNecessary.present
+          ? data.isNecessary.value
+          : this.isNecessary,
     );
   }
 
@@ -320,14 +360,23 @@ class CategoryRow extends DataClass implements Insertable<CategoryRow> {
           ..write('icon: $icon, ')
           ..write('colorValue: $colorValue, ')
           ..write('sortOrder: $sortOrder, ')
-          ..write('isDefault: $isDefault')
+          ..write('isDefault: $isDefault, ')
+          ..write('isNecessary: $isNecessary')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, name, type, icon, colorValue, sortOrder, isDefault);
+  int get hashCode => Object.hash(
+    id,
+    name,
+    type,
+    icon,
+    colorValue,
+    sortOrder,
+    isDefault,
+    isNecessary,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -338,7 +387,8 @@ class CategoryRow extends DataClass implements Insertable<CategoryRow> {
           other.icon == this.icon &&
           other.colorValue == this.colorValue &&
           other.sortOrder == this.sortOrder &&
-          other.isDefault == this.isDefault);
+          other.isDefault == this.isDefault &&
+          other.isNecessary == this.isNecessary);
 }
 
 class CategoriesCompanion extends UpdateCompanion<CategoryRow> {
@@ -349,6 +399,7 @@ class CategoriesCompanion extends UpdateCompanion<CategoryRow> {
   final Value<int> colorValue;
   final Value<int> sortOrder;
   final Value<bool> isDefault;
+  final Value<bool> isNecessary;
   const CategoriesCompanion({
     this.id = const Value.absent(),
     this.name = const Value.absent(),
@@ -357,6 +408,7 @@ class CategoriesCompanion extends UpdateCompanion<CategoryRow> {
     this.colorValue = const Value.absent(),
     this.sortOrder = const Value.absent(),
     this.isDefault = const Value.absent(),
+    this.isNecessary = const Value.absent(),
   });
   CategoriesCompanion.insert({
     this.id = const Value.absent(),
@@ -366,6 +418,7 @@ class CategoriesCompanion extends UpdateCompanion<CategoryRow> {
     required int colorValue,
     this.sortOrder = const Value.absent(),
     this.isDefault = const Value.absent(),
+    this.isNecessary = const Value.absent(),
   }) : name = Value(name),
        type = Value(type),
        colorValue = Value(colorValue);
@@ -377,6 +430,7 @@ class CategoriesCompanion extends UpdateCompanion<CategoryRow> {
     Expression<int>? colorValue,
     Expression<int>? sortOrder,
     Expression<bool>? isDefault,
+    Expression<bool>? isNecessary,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -386,6 +440,7 @@ class CategoriesCompanion extends UpdateCompanion<CategoryRow> {
       if (colorValue != null) 'color_value': colorValue,
       if (sortOrder != null) 'sort_order': sortOrder,
       if (isDefault != null) 'is_default': isDefault,
+      if (isNecessary != null) 'is_necessary': isNecessary,
     });
   }
 
@@ -397,6 +452,7 @@ class CategoriesCompanion extends UpdateCompanion<CategoryRow> {
     Value<int>? colorValue,
     Value<int>? sortOrder,
     Value<bool>? isDefault,
+    Value<bool>? isNecessary,
   }) {
     return CategoriesCompanion(
       id: id ?? this.id,
@@ -406,6 +462,7 @@ class CategoriesCompanion extends UpdateCompanion<CategoryRow> {
       colorValue: colorValue ?? this.colorValue,
       sortOrder: sortOrder ?? this.sortOrder,
       isDefault: isDefault ?? this.isDefault,
+      isNecessary: isNecessary ?? this.isNecessary,
     );
   }
 
@@ -433,6 +490,9 @@ class CategoriesCompanion extends UpdateCompanion<CategoryRow> {
     if (isDefault.present) {
       map['is_default'] = Variable<bool>(isDefault.value);
     }
+    if (isNecessary.present) {
+      map['is_necessary'] = Variable<bool>(isNecessary.value);
+    }
     return map;
   }
 
@@ -445,7 +505,8 @@ class CategoriesCompanion extends UpdateCompanion<CategoryRow> {
           ..write('icon: $icon, ')
           ..write('colorValue: $colorValue, ')
           ..write('sortOrder: $sortOrder, ')
-          ..write('isDefault: $isDefault')
+          ..write('isDefault: $isDefault, ')
+          ..write('isNecessary: $isNecessary')
           ..write(')'))
         .toString();
   }
@@ -994,6 +1055,7 @@ typedef $$CategoriesTableCreateCompanionBuilder = CategoriesCompanion Function({
   required int colorValue,
   Value<int> sortOrder,
   Value<bool> isDefault,
+  Value<bool> isNecessary,
 });
 typedef $$CategoriesTableUpdateCompanionBuilder = CategoriesCompanion Function({
   Value<int> id,
@@ -1003,6 +1065,7 @@ typedef $$CategoriesTableUpdateCompanionBuilder = CategoriesCompanion Function({
   Value<int> colorValue,
   Value<int> sortOrder,
   Value<bool> isDefault,
+  Value<bool> isNecessary,
 });
 
 final class $$CategoriesTableReferences
@@ -1069,6 +1132,11 @@ class $$CategoriesTableFilterComposer
 
   ColumnFilters<bool> get isDefault => $composableBuilder(
     column: $table.isDefault,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isNecessary => $composableBuilder(
+    column: $table.isNecessary,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -1141,6 +1209,11 @@ class $$CategoriesTableOrderingComposer
     column: $table.isDefault,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<bool> get isNecessary => $composableBuilder(
+    column: $table.isNecessary,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$CategoriesTableAnnotationComposer
@@ -1174,6 +1247,11 @@ class $$CategoriesTableAnnotationComposer
 
   GeneratedColumn<bool> get isDefault =>
       $composableBuilder(column: $table.isDefault, builder: (column) => column);
+
+  GeneratedColumn<bool> get isNecessary => $composableBuilder(
+    column: $table.isNecessary,
+    builder: (column) => column,
+  );
 
   Expression<T> movementsRefs<T extends Object>(
     Expression<T> Function($$MovementsTableAnnotationComposer a) f,
@@ -1236,6 +1314,7 @@ class $$CategoriesTableTableManager
                 Value<int> colorValue = const Value.absent(),
                 Value<int> sortOrder = const Value.absent(),
                 Value<bool> isDefault = const Value.absent(),
+                Value<bool> isNecessary = const Value.absent(),
               }) => CategoriesCompanion(
                 id: id,
                 name: name,
@@ -1244,6 +1323,7 @@ class $$CategoriesTableTableManager
                 colorValue: colorValue,
                 sortOrder: sortOrder,
                 isDefault: isDefault,
+                isNecessary: isNecessary,
               ),
           createCompanionCallback:
               ({
@@ -1254,6 +1334,7 @@ class $$CategoriesTableTableManager
                 required int colorValue,
                 Value<int> sortOrder = const Value.absent(),
                 Value<bool> isDefault = const Value.absent(),
+                Value<bool> isNecessary = const Value.absent(),
               }) => CategoriesCompanion.insert(
                 id: id,
                 name: name,
@@ -1262,6 +1343,7 @@ class $$CategoriesTableTableManager
                 colorValue: colorValue,
                 sortOrder: sortOrder,
                 isDefault: isDefault,
+                isNecessary: isNecessary,
               ),
           withReferenceMapper: (p0) => p0
               .map(

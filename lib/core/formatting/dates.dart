@@ -35,6 +35,12 @@ class AppDates {
     return DateTime(start.year, start.month, start.day + 7);
   }
 
+  /// Rango de la semana actual: lunes 00:00 hasta el domingo siguiente (exclusivo).
+  static ({DateTime start, DateTime endExclusive}) weekRange(DateTime value) {
+    final start = startOfWeek(value);
+    return (start: start, endExclusive: endOfWeekExclusive(start));
+  }
+
   /// Primer día del mes y primer día del mes siguiente.
   static ({DateTime start, DateTime endExclusive}) monthRange(DateTime value) {
     final start = DateTime(value.year, value.month);

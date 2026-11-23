@@ -11,52 +11,92 @@ import '../../../core/widgets/category_avatar.dart';
 import '../application/categories_providers.dart';
 import '../data/categories_repository.dart';
 
-class CategoriesScreen extends ConsumerStatefulWidget {
+class CategoriesScreen extends ConsumerWidget {
   const CategoriesScreen({super.key});
 
   @override
-  ConsumerState<CategoriesScreen> createState() => _CategoriesScreenState();
-}
+  Widget build(BuildContext context, WidgetRef ref) {
+    final categoriesAsync = ref.watch(categoriesProvider);
 
-class _CategoriesScreenState extends ConsumerState<CategoriesScreen>
-    with SingleTickerProviderStateMixin {
-  late final TabController _tabController;
-
-  @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 2, vsync: this)
-      ..addListener(() {
-        if (!_tabController.indexIsChanging && mounted) {
-          setState(() {});
-        }
-      });
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Categorías'),
+          bottom: categoriesAsync.when(
+            loading: () => null,
+            error: (_, __) => null,
+            data: (categories) => TabBar(
+              controller: DefaultTabController.of(context),
+              tabs: [
+                Tab(
+                  text: 'Gastos (${categories.where((category) => category.type == MovementType.expense).length})',
+                ),
+                Tab(
+                  text: 'Ingresos (${categories.where((category) => category.type == MovementType.income).length})',
+                ),
+              ],
+            ),
+          ),
+        ),
+        floatingActionButton: FloatingActionButton.extended(
+          onPressed: () => _openAddSheet(context, ref),
+          icon: const Icon(Icons.add_rounded),
+          label: const Text('Nueva categoría'),
+        ),
+        body: categoriesAsync.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (error, stack) => AppErrorView(
+            message: 'No se pudieron leer las categorías locales.',
+            onRetry: () => ref.invalidate(categoriesProvider),
+          ),
+          data: (categories) {
+            final expense = categories
+                .where((category) => category.type == MovementType.expense)
+                .toList();
+            final income = categories
+                .where((category) => category.type == MovementType.income)
+                .toList();
+            return TabBarView(
+              controller: DefaultTabController.of(context),
+              children: [
+                _CategoryList(
+                  categories: expense,
+                  onDelete: (cat) => _delete(context, ref, cat),
+                  onAdd: () => _openAddSheet(context, ref),
+                  emptyTitle: 'Sin categorías de gasto',
+                  ref: ref,
+                ),
+                _CategoryList(
+                  categories: income,
+                  onDelete: (cat) => _delete(context, ref, cat),
+                  onAdd: () => _openAddSheet(context, ref),
+                  emptyTitle: 'Sin categorías de ingreso',
+                  ref: ref,
+                ),
+              ],
+            );
+          },
+        ),
+      ),
+    );
   }
 
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
-  }
-
-  MovementType get _currentType =>
-      _tabController.index == 0 ? MovementType.expense : MovementType.income;
-
-  Future<void> _openAddSheet() async {
+  Future<void> _openAddSheet(BuildContext context, WidgetRef ref) async {
     final created = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
-      builder: (context) => _AddCategorySheet(initialType: _currentType),
+      builder: (context) => _AddCategorySheet(initialType: MovementType.expense),
     );
-    if (created == true && mounted) {
+    if (created == true && context.mounted) {
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(const SnackBar(content: Text('Categoría creada.')));
     }
   }
 
-  Future<void> _delete(Category category) async {
+  Future<void> _delete(BuildContext context, WidgetRef ref, Category category) async {
     final colors = Theme.of(context).extension<FinanceColors>()!;
     final confirmed = await showDialog<bool>(
       context: context,
@@ -79,24 +119,24 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen>
         ],
       ),
     );
-    if (confirmed != true || !mounted) {
+    if (confirmed != true || !context.mounted) {
       return;
     }
     try {
       await ref.read(categoriesRepositoryProvider).delete(category.id);
-      if (mounted) {
+      if (context.mounted) {
         ScaffoldMessenger.of(context)
           ..hideCurrentSnackBar()
           ..showSnackBar(const SnackBar(content: Text('Categoría eliminada.')));
       }
     } on CategoryInUseException catch (error) {
-      if (mounted) {
+      if (context.mounted) {
         ScaffoldMessenger.of(context)
           ..hideCurrentSnackBar()
           ..showSnackBar(SnackBar(content: Text(error.message)));
       }
     } catch (_) {
-      if (mounted) {
+      if (context.mounted) {
         ScaffoldMessenger.of(context)
           ..hideCurrentSnackBar()
           ..showSnackBar(
@@ -105,69 +145,101 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen>
       }
     }
   }
+}
 
-  @override
-  Widget build(BuildContext context) {
-    final categoriesAsync = ref.watch(categoriesProvider);
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Categorías'),
-        bottom: categoriesAsync.hasValue
-            ? TabBar(
-                controller: _tabController,
-                tabs: [
-                  Tab(
-                    text:
-                        'Gastos (${categoriesAsync.value!.where((category) => category.type == MovementType.expense).length})',
-                  ),
-                  Tab(
-                    text:
-                        'Ingresos (${categoriesAsync.value!.where((category) => category.type == MovementType.income).length})',
-                  ),
-                ],
-              )
-            : null,
+Widget _buildCategoryTile(
+  BuildContext context,
+  WidgetRef ref,
+  ThemeData theme,
+  FinanceColors colors,
+  Category cat,
+  ValueChanged<Category> onDelete,
+) {
+  return ListTile(
+    leading: CategoryAvatar(category: cat),
+    title: Text(cat.name),
+    subtitle: Text(
+      cat.isDefault
+          ? 'Categoría inicial'
+          : 'Categoría personalizada',
+      style: theme.textTheme.bodySmall?.copyWith(
+        color: theme.colorScheme.onSurfaceVariant,
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _openAddSheet,
-        icon: const Icon(Icons.add_rounded),
-        label: const Text('Nueva categoría'),
-      ),
-      body: categoriesAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stack) => AppErrorView(
-          message: 'No se pudieron leer las categorías locales.',
-          onRetry: () => ref.invalidate(categoriesProvider),
+    ),
+    trailing: Wrap(
+      spacing: 6,
+      children: [
+        if (cat.isNecessary)
+          Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 6,
+              vertical: 2,
+            ),
+            decoration: BoxDecoration(
+              color: colors.expense.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(
+                color: colors.expense.withValues(alpha: 0.4),
+              ),
+            ),
+            child: Text(
+              'Necesaria',
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: colors.expense,
+                fontWeight: FontWeight.w700,
+                fontSize: 10,
+              ),
+            ),
+          ),
+        IconButton(
+          tooltip: cat.isNecessary
+              ? 'Marcar como no necesaria'
+              : 'Marcar como necesaria',
+          onPressed: () {
+            try {
+              ref.read(categoriesRepositoryProvider).updateNecessary(cat.id, !cat.isNecessary);
+              ScaffoldMessenger.of(context)
+                ..hideCurrentSnackBar()
+                ..showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      !cat.isNecessary
+                          ? '“${cat.name}” marcada como necesaria.'
+                          : '“${cat.name}” ya no es necesaria.',
+                    ),
+                  ),
+                );
+            } catch (_) {
+              ScaffoldMessenger.of(context)
+                ..hideCurrentSnackBar()
+                ..showSnackBar(
+                  const SnackBar(content: Text('No se pudo actualizar la categoría.')),
+                );
+            }
+          },
+          icon: Icon(
+            cat.isNecessary
+                ? Icons.check_circle_rounded
+                : Icons.circle_outlined,
+            size: 20,
+            color: cat.isNecessary
+                ? colors.expense
+                : theme.colorScheme.onSurfaceVariant,
+          ),
         ),
-        data: (categories) {
-          final expense = categories
-              .where((category) => category.type == MovementType.expense)
-              .toList();
-          final income = categories
-              .where((category) => category.type == MovementType.income)
-              .toList();
-          return TabBarView(
-            controller: _tabController,
-            children: [
-              _CategoryList(
-                categories: expense,
-                onDelete: _delete,
-                onAdd: _openAddSheet,
-                emptyTitle: 'Sin categorías de gasto',
-              ),
-              _CategoryList(
-                categories: income,
-                onDelete: _delete,
-                onAdd: _openAddSheet,
-                emptyTitle: 'Sin categorías de ingreso',
-              ),
-            ],
-          );
-        },
-      ),
-    );
-  }
+        if (!cat.isDefault)
+          IconButton(
+            tooltip: 'Eliminar categoría',
+            onPressed: () => onDelete(cat),
+            icon: Icon(
+              Icons.delete_outline_rounded,
+              size: 21,
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+      ],
+    ),
+  );
 }
 
 class _CategoryList extends StatelessWidget {
@@ -176,16 +248,19 @@ class _CategoryList extends StatelessWidget {
     required this.onDelete,
     required this.onAdd,
     required this.emptyTitle,
+    required this.ref,
   });
 
   final List<Category> categories;
   final ValueChanged<Category> onDelete;
   final VoidCallback onAdd;
   final String emptyTitle;
+  final WidgetRef ref;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colors = theme.extension<FinanceColors>()!;
     if (categories.isEmpty) {
       return ListView(
         padding: const EdgeInsets.fromLTRB(20, 24, 20, 120),
@@ -210,26 +285,13 @@ class _CategoryList extends StatelessWidget {
             child: Column(
               children: [
                 for (var index = 0; index < categories.length; index++) ...[
-                  ListTile(
-                    leading: CategoryAvatar(category: categories[index]),
-                    title: Text(categories[index].name),
-                    subtitle: Text(
-                      categories[index].isDefault
-                          ? 'Categoría inicial'
-                          : 'Categoría personalizada',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                    trailing: IconButton(
-                      tooltip: 'Eliminar categoría',
-                      onPressed: () => onDelete(categories[index]),
-                      icon: Icon(
-                        Icons.delete_outline_rounded,
-                        size: 21,
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
+                  _buildCategoryTile(
+                    context,
+                    ref,
+                    theme,
+                    colors,
+                    categories[index],
+                    onDelete,
                   ),
                   if (index < categories.length - 1)
                     const Divider(height: 1, indent: 70),

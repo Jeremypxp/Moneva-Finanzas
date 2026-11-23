@@ -16,7 +16,10 @@ abstract interface class CategoriesRepository {
     required MovementType type,
     required String icon,
     required int colorValue,
+    bool isNecessary = false,
   });
+
+  Future<void> updateNecessary(int id, bool isNecessary);
 
   Future<void> delete(int id);
 }
@@ -71,6 +74,7 @@ class DriftCategoriesRepository implements CategoriesRepository {
     required MovementType type,
     required String icon,
     required int colorValue,
+    bool isNecessary = false,
   }) async {
     final cleanName = name.trim();
     if (cleanName.isEmpty) {
@@ -110,6 +114,8 @@ class DriftCategoriesRepository implements CategoriesRepository {
             icon: Value(icon),
             colorValue: colorValue,
             sortOrder: Value(nextOrder),
+            isDefault: Value(true),
+            isNecessary: Value(isNecessary),
           ),
         );
   }
@@ -132,6 +138,13 @@ class DriftCategoriesRepository implements CategoriesRepository {
     )..where((category) => category.id.equals(id))).go();
   }
 
+  @override
+  Future<void> updateNecessary(int id, bool isNecessary) async {
+    await (_db.update(_db.categories)
+      ..where((category) => category.id.equals(id)))
+        .write(CategoriesCompanion(isNecessary: Value(isNecessary)));
+  }
+
   SimpleSelectStatement<$CategoriesTable, CategoryRow> _orderedQuery() {
     return _db.select(_db.categories)..orderBy([
       (category) => OrderingTerm.asc(category.type),
@@ -149,6 +162,7 @@ class DriftCategoriesRepository implements CategoriesRepository {
       colorValue: row.colorValue,
       sortOrder: row.sortOrder,
       isDefault: row.isDefault,
+      isNecessary: row.isNecessary,
     );
   }
 }

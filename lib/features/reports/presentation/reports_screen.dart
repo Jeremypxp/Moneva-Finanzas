@@ -232,6 +232,15 @@ class _ReportContent extends StatelessWidget {
           items: data.incomeByCategory,
           emptyMessage: 'No registraste ingresos en este periodo.',
         ),
+        const SizedBox(height: 24),
+        Consumer(
+          builder: (context, ref, child) {
+            return _WeeklyInsights(
+              current: data,
+              previous: ref.watch(previousWeekReportProvider),
+            );
+          },
+        ),
       ],
     );
   }
@@ -400,5 +409,220 @@ class _BreakdownRow extends StatelessWidget {
         ),
       ],
     );
+  }
+}
+
+/// Insights semanales generados con reglas locales.
+class _WeeklyInsights extends ConsumerWidget {
+  const _WeeklyInsights({
+    required this.current,
+    required this.previous,
+  });
+
+  final ReportData current;
+  final AsyncValue<ReportData?> previous;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final colors = theme.extension<FinanceColors>()!;
+
+    return previous.when(
+      loading: () => const SizedBox.shrink(),
+      error: (_, __) => const SizedBox.shrink(),
+      data: (prevData) {
+        final hasPrevious = prevData != null && !prevData!.isEmpty;
+        final balanceNegative = current.balanceCents < 0;
+
+        // Si no hay suficientes datos para comparar.
+        if (!hasPrevious) {
+          return SurfaceCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      Icons.info_outline_rounded,
+                      size: 20,
+                      color: colors.warning,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Observaciones de la semana',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  'Aún estamos conociendo tus hábitos de gasto. '
+                  'Sigue registrando movimientos para ver comparaciones '
+                  'con semanas anteriores.',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+
+        final previousExpenses = prevData.expenseByCategory;
+
+        // Observación: balance negativo.
+        if (balanceNegative) {
+          return SurfaceCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      Icons.warning_amber_rounded,
+                      size: 20,
+                      color: colors.warning,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Observaciones de la semana',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  'Gastos registrados (${Money.format(current.expenseCents)}) '
+                  'superan a los ingresos registrados '
+                  '(${Money.format(current.incomeCents)}) esta semana. '
+                  'Este cálculo se basa solo en los movimientos que '
+                  'has anotado en Moneva.',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+
+        // Observación: categoría no esencial que aumentó notablemente.
+        final notableIncrease = current.expenseByCategory.firstWhereOrNull(
+          (currentCat) {
+            if (currentCat.category.isNecessary) {
+              return false;
+            }
+            final prevCat = previousExpenses.firstWhereOrNull(
+              (p) => p.category.id == currentCat.category.id,
+            );
+            if (prevCat == null || prevCat.totalCents <= 0) {
+              return false;
+            }
+            final increase = currentCat.totalCents - prevCat.totalCents;
+            final pctIncrease = increase / prevCat.totalCents;
+            // Aumento notable: >25% y al menos S/ 10 más.
+            return pctIncrease > 0.25 && increase >= 1000;
+          },
+        );
+
+        if (notableIncrease != null) {
+          final prevCat = previousExpenses.firstWhere(
+            (p) => p.category.id == notableIncrease.category.id,
+          );
+          final increase = notableIncrease.totalCents - prevCat.totalCents;
+          final pct = (increase / prevCat.totalCents * 100).round();
+          return SurfaceCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      Icons.trending_up_rounded,
+                      size: 20,
+                      color: colors.warning,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Observaciones de la semana',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  'El gasto en “${notableIncrease.category.name}” subió '
+                  '${Money.format(increase)} (${pct}%) respecto a la semana '
+                  'pasada (${Money.format(prevCat.totalCents)} → '
+                  '${Money.format(notableIncrease.totalCents)}). '
+                  '¿Fue algo puntual esta semana?',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+
+        // Todo en orden.
+        return SurfaceCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    Icons.check_circle_rounded,
+                    size: 20,
+                    color: colors.income,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Observaciones de la semana',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Text(
+                'Todo en orden esta semana.',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// Extensión para firstWhereOrNull en listas.
+extension _ListFirstWhereOrNull<T> on List<T> {
+  T? firstWhereOrNull(bool Function(T) test) {
+    for (final element in this) {
+      if (test(element)) {
+        return element;
+      }
+    }
+    return null;
   }
 }

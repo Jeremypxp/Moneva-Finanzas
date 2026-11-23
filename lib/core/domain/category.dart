@@ -9,6 +9,7 @@ class Category {
     required this.colorValue,
     required this.sortOrder,
     required this.isDefault,
+    this.isNecessary = false,
   });
 
   final int id;
@@ -20,4 +21,8 @@ class Category {
   final int colorValue;
   final int sortOrder;
   final bool isDefault;
+
+  /// Indica si la categoría se considera necesaria (ej. pasaje, snacks de mascota).
+  /// Las categorías necesarias no reciben recomendaciones de reducción.
+  final bool isNecessary;
 }

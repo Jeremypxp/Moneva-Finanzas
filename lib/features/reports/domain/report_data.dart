@@ -38,6 +38,7 @@ class ReportData {
 }
 
 enum ReportPeriod {
+  thisWeek('Esta semana'),
   thisMonth('Este mes'),
   lastMonth('Mes anterior'),
   last3Months('Últimos 3 meses'),
@@ -49,6 +50,8 @@ enum ReportPeriod {
 
   ({DateTime start, DateTime endExclusive}) rangeFor(DateTime now) {
     switch (this) {
+      case ReportPeriod.thisWeek:
+        return AppDates.weekRange(now);
       case ReportPeriod.thisMonth:
         return AppDates.monthRange(now);
       case ReportPeriod.lastMonth:

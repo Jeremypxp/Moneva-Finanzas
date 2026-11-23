@@ -34,3 +34,42 @@ class ReportController extends AsyncNotifier<ReportData> {
     await future;
   }
 }
+
+/// Estado de la notificación semanal.
+class _WeeklyNotificationSettings {
+  bool enabled = false;
+  int hour = 18;
+}
+
+final weeklyNotificationSettingsProvider =
+    Provider<_WeeklyNotificationSettings>((ref) => _WeeklyNotificationSettings());
+
+/// Reporte de la semana anterior, usado para comparaciones en los insights.
+final previousWeekReportProvider =
+    AsyncNotifierProvider<PreviousWeekReportController, ReportData?>(
+  PreviousWeekReportController.new,
+);
+
+class PreviousWeekReportController
+    extends AsyncNotifier<ReportData?> {
+  @override
+  Future<ReportData?> build() async {
+    final now = DateTime.now();
+    final currentWeek = ReportPeriod.thisWeek.rangeFor(now);
+    final startOfCurrent = currentWeek.start;
+
+    // Semana anterior: 7 días antes del inicio de la semana actual.
+    final previousStart = startOfCurrent.subtract(const Duration(days: 7));
+    final previousEnd = startOfCurrent;
+
+    final data = await ref
+        .watch(reportsRepositoryProvider)
+        .fetchReport(start: previousStart, endExclusive: previousEnd);
+    return data.isEmpty ? null : data;
+  }
+
+  Future<void> refresh() async {
+    ref.invalidateSelf();
+    await future;
+  }
+}

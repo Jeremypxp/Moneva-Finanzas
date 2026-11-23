@@ -12,6 +12,7 @@ class Categories extends Table {
   IntColumn get colorValue => integer()();
   IntColumn get sortOrder => integer().withDefault(const Constant(0))();
   BoolColumn get isDefault => boolean().withDefault(const Constant(false))();
+  BoolColumn get isNecessary => boolean().withDefault(const Constant(false))();
 
   @override
   List<String> get customConstraints => const [
@@ -46,13 +47,18 @@ class AppDatabase extends _$AppDatabase {
     : super(executor ?? driftDatabase(name: 'app_finanzas'));
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (migrator) async {
       await migrator.createAll();
       await _seedCategories();
+    },
+    onUpgrade: (migrator, from, to) async {
+      if (from < 2) {
+        await migrator.addColumn(categories, categories.isNecessary);
+      }
     },
     beforeOpen: (details) async {
       await customStatement('PRAGMA foreign_keys = ON');

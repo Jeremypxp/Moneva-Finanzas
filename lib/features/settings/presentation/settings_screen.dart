@@ -114,6 +114,23 @@ class SettingsScreen extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: 22),
+          _SettingsLabel(label: 'NOTIFICACIONES'),
+          const SizedBox(height: 8),
+          _SettingsCard(
+            children: [
+              ListTile(
+                leading: const _LeadingIcon(
+                  icon: Icons.notifications_outlined,
+                ),
+                title: const Text('Resumen semanal'),
+                subtitle: const Text(
+                  'Notificaciones semanales próximamente.',
+                ),
+                trailing: _StatusBadge(label: 'Próximamente'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 22),
           _SettingsLabel(label: 'CUENTA'),
           const SizedBox(height: 8),
           _SettingsCard(
