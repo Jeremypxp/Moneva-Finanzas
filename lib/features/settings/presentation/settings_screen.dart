@@ -1,15 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../app/di.dart';
 import '../../../app/theme.dart';
+import '../../auth/application/auth_providers.dart';
+import '../../auth/domain/auth_failure.dart';
 
-class SettingsScreen extends StatelessWidget {
+class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final colors = theme.extension<FinanceColors>()!;
+    final authConfigured = ref.watch(authConfiguredProvider);
+    final user = ref.watch(authSessionProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Ajustes')),
@@ -48,7 +54,9 @@ class SettingsScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 3),
                       Text(
-                        'Se guardan solo en este dispositivo. No necesitas internet.',
+                        'Los movimientos se guardan solo en este dispositivo. '
+                        'La cuenta sirve para identificarte, no para '
+                        'sincronizar.',
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: theme.colorScheme.onSurfaceVariant,
                           height: 1.35,
@@ -109,29 +117,65 @@ class SettingsScreen extends StatelessWidget {
           const SizedBox(height: 8),
           _SettingsCard(
             children: [
-              ListTile(
-                leading: const _LeadingIcon(icon: Icons.cloud_sync_outlined),
-                title: const Text('Sincronización'),
-                subtitle: const Text(
-                  'Se habilitará en una próxima fase. Ahora no hay inicio de sesión.',
-                ),
-                trailing: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 9,
-                    vertical: 4,
+              if (!authConfigured)
+                ListTile(
+                  leading: const _LeadingIcon(
+                    icon: Icons.person_outline_rounded,
                   ),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.surfaceContainerLow,
-                    borderRadius: BorderRadius.circular(999),
+                  title: const Text('Inicio de sesión'),
+                  subtitle: const Text(
+                    'No configurado en esta compilación. La app sigue '
+                    'funcionando con tus datos locales.',
                   ),
-                  child: Text(
-                    'Próximamente',
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                      fontWeight: FontWeight.w600,
+                  trailing: _StatusBadge(label: 'Local'),
+                )
+              else if (user == null)
+                ListTile(
+                  leading: const _LeadingIcon(icon: Icons.login_rounded),
+                  title: const Text('Iniciar sesión'),
+                  subtitle: const Text('Usa tu correo y contraseña'),
+                  trailing: const Icon(Icons.chevron_right_rounded, size: 20),
+                  onTap: () => context.push('/login'),
+                )
+              else ...[
+                ListTile(
+                  leading: Container(
+                    width: 38,
+                    height: 38,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(11),
+                    ),
+                    child: Text(
+                      user.initials,
+                      style: theme.textTheme.labelLarge?.copyWith(
+                        color: theme.colorScheme.primary,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                   ),
+                  title: Text(user.displayName),
+                  subtitle: Text(user.email ?? 'Cuenta de Moneva'),
                 ),
+                const Divider(height: 1, indent: 58),
+                ListTile(
+                  leading: const _LeadingIcon(icon: Icons.logout_rounded),
+                  title: const Text('Cerrar sesión'),
+                  subtitle: const Text(
+                    'Tus movimientos permanecen en este teléfono',
+                  ),
+                  onTap: () => _signOut(context, ref),
+                ),
+              ],
+              const Divider(height: 1, indent: 58),
+              ListTile(
+                leading: const _LeadingIcon(icon: Icons.cloud_off_outlined),
+                title: const Text('Sincronización'),
+                subtitle: const Text(
+                  'Los movimientos no se sincronizan entre dispositivos.',
+                ),
+                trailing: _StatusBadge(label: 'Próximamente'),
               ),
             ],
           ),
@@ -165,6 +209,51 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 
+  Future<void> _signOut(BuildContext context, WidgetRef ref) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('¿Cerrar sesión?'),
+        content: const Text(
+          'Podrás volver a entrar con tu correo y contraseña. Tus movimientos '
+          'seguirán guardados en este dispositivo.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Cerrar sesión'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) {
+      return;
+    }
+    try {
+      await ref.read(authRepositoryProvider).signOut();
+    } on AuthFailure catch (failure) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(SnackBar(content: Text(failure.message)));
+      }
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            const SnackBar(
+              content: Text('No se pudo cerrar sesión. Inténtalo de nuevo.'),
+            ),
+          );
+      }
+    }
+  }
+
   void _showPrivacy(BuildContext context) {
     showDialog<void>(
       context: context,
@@ -172,11 +261,12 @@ class SettingsScreen extends StatelessWidget {
         title: const Text('Privacidad'),
         content: const Text(
           'Los movimientos, categorías y notas se guardan en una base SQLite '
-          'local en tu dispositivo. La app no envía información a servidores ni '
-          'requiere internet. Las exportaciones CSV se generan localmente y solo '
-          'salen del dispositivo cuando tú eliges compartirlas o guardarlas.\n\n'
-          'En una fase futura, una sincronización opcional con Supabase podría '
-          'requerir una cuenta. Nada se enviará sin una acción tuya.',
+          'local en tu dispositivo.\n\n'
+          'La cuenta de Moneva se usa solo para autenticarte con Supabase. '
+          'Iniciar o cerrar sesión no borra ni modifica tus movimientos, y '
+          'estos no se envían ni se sincronizan con Supabase.\n\n'
+          'Las exportaciones CSV se generan localmente y solo salen del '
+          'dispositivo cuando tú eliges compartirlas o guardarlas.',
         ),
         actions: [
           TextButton(
@@ -197,7 +287,9 @@ class SettingsScreen extends StatelessWidget {
           'Versión 1.0.0\n\n'
           'Una app personal para registrar ingresos y gastos en soles, '
           'entender tu semana y revisar tu historial sin conexión.\n\n'
-          'Hecha con Flutter, Riverpod, go_router y Drift/SQLite.',
+          'La cuenta de Moneva usa Supabase Auth solo para iniciar sesión. '
+          'Los movimientos permanecen en SQLite, en este dispositivo.\n\n'
+          'Hecha con Flutter, Riverpod, go_router, Drift/SQLite y Supabase Auth.',
         ),
         actions: [
           TextButton(
@@ -205,6 +297,31 @@ class SettingsScreen extends StatelessWidget {
             child: const Text('Cerrar'),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _StatusBadge extends StatelessWidget {
+  const _StatusBadge({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: theme.textTheme.labelSmall?.copyWith(
+          color: theme.colorScheme.onSurfaceVariant,
+          fontWeight: FontWeight.w600,
+        ),
       ),
     );
   }

@@ -27,10 +27,13 @@ reales. Solo se siembran 14 categorías útiles (9 de gasto y 5 de ingreso).
   abre la hoja de compartir/guardar del sistema.
 - **Categorías**: crear y eliminar categorías de gasto o ingreso. No se puede
   eliminar una categoría con movimientos asociados.
-- **Ajustes**: privacidad, información de la app, moneda PEN y acceso a
-  categorías/exportación.
-- **Privacidad**: todo se guarda en SQLite local. No hay backend, inicio de
-  sesión, publicidad ni servicios de IA.
+- **Ajustes**: privacidad, información de la app, moneda PEN, cuenta (inicio y
+  cierre de sesión) y acceso a categorías/exportación.
+- **Cuenta**: registro e inicio de sesión con correo y contraseña mediante
+  Supabase Auth. La cuenta solo identifica a la persona: **no sincroniza ni
+  asocia movimientos**. El acceso con Google aún no está disponible.
+- **Privacidad**: los movimientos se guardan en SQLite local y permanecen en el
+  dispositivo. Iniciar o cerrar sesión no los borra ni los modifica.
 
 ## Arquitectura
 
@@ -38,12 +41,13 @@ reales. Solo se siembran 14 categorías útiles (9 de gasto y 5 de ingreso).
 lib/
   app/                 arranque, router, shell, tema y composition root
   core/
-    auth/              AuthGateway (punto de extensión para Supabase Auth)
+    config/            lectura de la configuración de Supabase
     database/          esquema Drift y siembra de categorías
     domain/            modelos compartidos (tipo, categoría, totales)
     formatting/        dinero en céntimos y fechas locales
     widgets/           componentes reutilizables
   features/
+    auth/              application / data / domain / presentation
     dashboard/         resumen semanal
     movements/         application / data / domain / presentation
     reports/           agregados por periodo y categoría
@@ -55,8 +59,10 @@ integration_test/      flujo completo en un dispositivo Android
 
 - **Riverpod** para estado e inyección de dependencias.
 - **go_router** con `StatefulShellRoute` para las cuatro secciones y rutas
-  modales para el formulario y las categorías.
+  modales para el formulario y las categorías. El redirect depende de la
+  sesión solo cuando Supabase está configurado.
 - **Drift/SQLite** con repositorios; la capa de presentación nunca ejecuta SQL.
+- **Supabase Auth** encapsulado en `AuthRepository`; no conoce SQLite.
 - **Importes como `int` en céntimos**, sin operaciones financieras en `double`.
 - **Fechas como día local** (`DateTime` a medianoche) y rangos con límite final
   exclusivo.
@@ -72,25 +78,82 @@ integration_test/      flujo completo en un dispositivo Android
 | `share_plus` 13.3 | hoja de compartir del sistema |
 | `path_provider` 2.1 | archivos temporales |
 | `intl` 0.20 | formato `es_PE` |
+| `supabase_flutter` 2.18 | autenticación con correo y contraseña |
 
 ## Datos y privacidad
 
 - Base SQLite local llamada `app_finanzas` (nombre interno del archivo, se
   mantiene para conservar los datos existentes), administrada por `drift_flutter`.
+- Los movimientos **nunca** se envían a Supabase en esta etapa. La cuenta solo
+  autentica; no hay tablas de movimientos ni de sincronización.
+- Los movimientos permanecen en el teléfono y no aparecen al iniciar sesión
+  desde otro dispositivo.
 - Categorías iniciales: Alimentación, Transporte, Snacks y mascota, Hogar,
   Salud, Servicios, Ocio, Educación, Otros gastos, Sueldo, Trabajo
   independiente, Ventas, Regalos y Otros ingresos.
 - No hay datos de demostración ni credenciales en el repositorio.
-- `.gitignore` excluye bases SQLite, CSV, `.env`, keystores y archivos de firma.
-- La app no requiere internet para funcionar.
+- `.gitignore` excluye bases SQLite, CSV, `.env`, keystores, archivos de firma y
+  `supabase.local.json`.
+- La app solo requiere internet para iniciar sesión o registrarse; el uso de
+  movimientos funciona sin conexión.
 
-### Punto de extensión para Supabase Auth
+## Autenticación con Supabase
 
-`lib/core/auth/auth_gateway.dart` define `AuthGateway` y una implementación
-`LocalOnlyAuthGateway`. El proveedor `authGatewayProvider` está en
-`lib/app/di.dart`. No se añadió el paquete de Supabase, no hay pantalla de login
-y no se simula ninguna sesión. Para una fase posterior basta con implementar la
-interfaz y sustituir el proveedor.
+### Configuración local
+
+1. Copia `supabase.local.example.json` como `supabase.local.json`.
+2. Coloca la URL del proyecto y la **publishable key** (o anon key):
+
+```json
+{
+  "SUPABASE_URL": "https://tu-proyecto.supabase.co",
+  "SUPABASE_ANON_KEY": "tu_publishable_key"
+}
+```
+
+3. Ejecuta la app o compila el APK con el archivo local:
+
+```bash
+flutter run --dart-define-from-file=supabase.local.json
+flutter build apk --release --dart-define-from-file=supabase.local.json
+```
+
+- `supabase.local.json` está ignorado por Git. Solo se versiona el ejemplo.
+- Usa exclusivamente la publishable/anon key. **Nunca** la secret key,
+  `service_role` ni la contraseña de PostgreSQL en la app.
+- Si no hay credenciales, Moneva arranca en modo local: los movimientos siguen
+  disponibles y el inicio de sesión queda desactivado con un aviso.
+
+### Comportamiento
+
+- Registro con nombres, apellidos, correo, contraseña y confirmación. Los
+  nombres se guardan en `user_metadata`; no hay tabla de perfiles.
+- Contraseña mínima de 8 caracteres. La barra de seguridad es local y
+  orientativa: débil, aceptable, buena o fuerte.
+- Los nombres admiten tildes, ñ, espacios y guiones. El correo se recorta antes
+  de enviarlo y la contraseña no se altera.
+- Si Supabase exige confirmación de correo, se muestra un aviso y se vuelve al
+  inicio de sesión. No hay deep link propio: la confirmación se completa desde
+  el enlace del correo.
+- La sesión se restaura al abrir la app y el router navega según el estado.
+- Mensajes en español para red, credenciales, correo inválido, cuenta existente,
+  contraseña débil, correo pendiente y límite de intentos.
+
+### Google OAuth (etapa posterior)
+
+El botón «Continuar con Google» se muestra desactivado y marcado
+«Próximamente»; no solicita credenciales ni abre ningún flujo. Para
+incorporarlo hará falta:
+
+1. Habilitar el proveedor Google en Supabase y configurar las credenciales
+   OAuth (client ID y secret) en el panel de Supabase.
+2. Configurar los deep links/redirect URIs de Android (`com.personal.finanzas.app_finanzas`)
+   y registrar la huella SHA-1/SHA-256 de la firma.
+3. Añadir el flujo de inicio de sesión con Google en la app y probarlo en un
+   dispositivo real.
+
+No se añadieron credenciales ni dependencias específicas de Google en esta
+entrega.
 
 ## Requisitos
 
@@ -103,8 +166,12 @@ interfaz y sustituir el proveedor.
 ```bash
 flutter pub get
 dart run build_runner build
-flutter run -d <id-del-dispositivo>
+# Opcional: con credenciales locales de Supabase
+flutter run -d <id-del-dispositivo> --dart-define-from-file=supabase.local.json
 ```
+
+Sin `supabase.local.json`, la app arranca en modo local y el inicio de sesión
+queda desactivado.
 
 El código generado de Drift (`lib/core/database/app_database.g.dart`) se
 versiona; si se modifica el esquema hay que regenerarlo con `build_runner`.
@@ -124,6 +191,12 @@ keystore, ambos ignorados por Git):
 flutter build appbundle --release
 ```
 
+Si quieres autenticación en la compilación, añade el archivo local:
+
+```bash
+flutter build apk --release --dart-define-from-file=supabase.local.json
+```
+
 ### Pruebas
 
 ```bash
@@ -132,9 +205,11 @@ flutter test
 flutter test integration_test/app_test.dart -d <id-del-dispositivo>
 ```
 
-La prueba de integración recorre alta de un gasto, resumen, historial, filtros,
-reporte, ajustes y generación real de un CSV. Usa una base SQLite **en memoria**,
-por lo que no toca los datos de la app instalada.
+Las pruebas de widgets de autenticación usan un repositorio falso: no llaman a
+Supabase ni necesitan credenciales. La prueba de integración recorre alta de un
+gasto, resumen, historial, filtros, reporte, ajustes y generación real de un
+CSV. Usa una base SQLite **en memoria**, por lo que no toca los datos de la app
+instalada.
 
 ## Comportamiento del CSV
 
@@ -159,7 +234,11 @@ por lo que no toca los datos de la app instalada.
 ## Limitaciones conocidas
 
 - Solo se configuró la plataforma Android.
-- Sin sincronización, copia de seguridad, restauración ni multiusuario.
+- La cuenta solo autentica: sin sincronización, copia de seguridad en la nube,
+  restauración ni asociación de movimientos a usuarios.
+- Google OAuth queda para una etapa posterior; el botón está desactivado.
+- La confirmación de correo depende del enlace que envía Supabase; no hay deep
+  link propio de Moneva.
 - Sin edición del nombre/icono/color de categorías existentes (se pueden crear y
   eliminar).
 - La moneda está fija en PEN y el idioma en español.
@@ -173,9 +252,24 @@ por lo que no toca los datos de la app instalada.
 ## Verificación realizada
 
 - `flutter analyze`: sin problemas.
-- `flutter test`: 18 pruebas aprobadas (dinero, fechas, filtros, CSV,
-  repositorios de movimientos/categorías/reportes y widget del resumen).
-- `flutter build apk --debug`: APK generado.
+- `flutter test`: 59 pruebas aprobadas (dinero, fechas, filtros, CSV,
+  repositorios, widgets del resumen/reportes, validaciones de auth, fuerza de
+  contraseña y flujo de login/registro/navegación con un repositorio falso).
+- `flutter build apk --release` sin credenciales: APK generado (63,4 MB).
+- Instalación con `adb install -r` sobre la app existente, sin desinstalar ni
+  borrar datos. Tras abrir la app se mantuvieron el saldo S/ 250,60, los
+  ingresos S/ 318,50, los gastos S/ 67,90 y los movimientos del dispositivo.
+- La app compilada sin credenciales arranca en modo local y muestra directamente
+  el resumen.
 - Prueba de integración aprobada en un dispositivo físico Android 15 (API 35),
   incluyendo la generación del CSV.
-- La app quedó instalada y abierta en el dispositivo de prueba.
+- **No verificado con Supabase real**: el entorno no tenía credenciales, así que
+  no se probaron registro, inicio de sesión ni la confirmación de correo contra
+  el proyecto. Para probarlo, crea `supabase.local.json` con la URL y la
+  publishable key, compila con `--dart-define-from-file` y revisa:
+  1. registro con un correo nuevo → aviso de confirmación si está habilitada;
+  2. enlace del correo → inicio de sesión correcto;
+  3. credenciales incorrectas → mensaje en español;
+  4. cerrar la app y abrirla → la sesión se restaura;
+  5. cerrar sesión → vuelve a `/login` y los movimientos siguen intactos.
+- Google OAuth no se probó porque no forma parte de esta entrega.
