@@ -6,6 +6,7 @@ import 'package:moneva_finanzas/app/app.dart';
 import 'package:moneva_finanzas/app/di.dart';
 import 'package:moneva_finanzas/app/theme.dart';
 import 'package:moneva_finanzas/core/domain/period_totals.dart';
+import 'package:moneva_finanzas/features/auth/application/auth_deep_link_handler.dart';
 import 'package:moneva_finanzas/features/auth/data/auth_repository.dart';
 import 'package:moneva_finanzas/features/auth/domain/auth_failure.dart';
 import 'package:moneva_finanzas/features/auth/domain/auth_user.dart';
@@ -52,6 +53,11 @@ Widget _fullApp(FakeAuthRepository repository) {
 void main() {
   setUpAll(() async {
     await initializeDateFormatting('es_PE');
+  });
+
+  setUp(() {
+    // Evita que un enlace pendiente de una prueba previa afecte la navegación.
+    AuthDeepLinkHandler.instance.clearPendingLink();
   });
 
   group('inicio de sesión', () {

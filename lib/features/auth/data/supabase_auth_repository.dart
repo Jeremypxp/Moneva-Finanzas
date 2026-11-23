@@ -61,6 +61,7 @@ class SupabaseAuthRepository implements AuthRepository {
       final response = await _client.auth.signUp(
         email: email.trim(),
         password: password,
+        emailRedirectTo: 'moneva://auth-callback/',
         data: {
           'first_name': firstName,
           'last_name': lastName,

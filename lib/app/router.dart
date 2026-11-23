@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../features/auth/application/auth_providers.dart';
+import '../features/auth/presentation/email_verification_screen.dart';
 import '../features/auth/presentation/login_screen.dart';
 import '../features/auth/presentation/register_screen.dart';
 import '../features/categories/presentation/categories_screen.dart';
@@ -34,10 +35,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       final user = ref.read(authSessionProvider);
       final location = state.matchedLocation;
       final isAuthLocation = location == '/login' || location == '/registro';
-      if (user == null && !isAuthLocation) {
+      final isVerificationLocation = location == '/auth-callback';
+      if (user == null && !isAuthLocation && !isVerificationLocation) {
         return '/login';
       }
-      if (user != null && isAuthLocation) {
+      if (user != null && (isAuthLocation || isVerificationLocation)) {
         return '/resumen';
       }
       return null;
@@ -47,6 +49,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/registro',
         builder: (context, state) => const RegisterScreen(),
+      ),
+      GoRoute(
+        path: '/auth-callback',
+        builder: (context, state) => const EmailVerificationScreen(),
       ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) {
