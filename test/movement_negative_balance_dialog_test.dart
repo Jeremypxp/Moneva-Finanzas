@@ -154,7 +154,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(repository.createCalls, 1);
-    expect(find.text('Tu resumen'), findsOneWidget);
+    expect(find.textContaining('Moneva'), findsOneWidget);
     expect(find.text('-S/ 25,50'), findsOneWidget);
     expect(
       find.text('Tus gastos superan tus ingresos registrados'),

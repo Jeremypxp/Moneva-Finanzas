@@ -56,7 +56,7 @@ app.*.map.json
 *.db
 *.csv
 
-# Secretos y configuración local
+# Secretos y configuraciï¿½n local
 .env
 .env.*
 !.env.example
@@ -64,6 +64,9 @@ app.*.map.json
 **/*.keystore
 **/*.jks
 
-# Credenciales de servicios (si se añaden en el futuro)
+# Credenciales de servicios (si se aï¿½aden en el futuro)
 google-services.json
 GoogleService-Info.plist
+
+# ConfiguraciÃ³n local de Supabase (URL y publishable key, nunca secret key)
+supabase.local.json
