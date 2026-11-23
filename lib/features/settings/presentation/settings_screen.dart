@@ -16,6 +16,7 @@ class SettingsScreen extends ConsumerWidget {
     final colors = theme.extension<FinanceColors>()!;
     final authConfigured = ref.watch(authConfiguredProvider);
     final user = ref.watch(authSessionProvider);
+    final signingOut = ref.watch(signOutLoadingProvider).value;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Ajustes')),
@@ -158,15 +159,6 @@ class SettingsScreen extends ConsumerWidget {
                   title: Text(user.displayName),
                   subtitle: Text(user.email ?? 'Cuenta de Moneva'),
                 ),
-                const Divider(height: 1, indent: 58),
-                ListTile(
-                  leading: const _LeadingIcon(icon: Icons.logout_rounded),
-                  title: const Text('Cerrar sesión'),
-                  subtitle: const Text(
-                    'Tus movimientos permanecen en este teléfono',
-                  ),
-                  onTap: () => _signOut(context, ref),
-                ),
               ],
               const Divider(height: 1, indent: 58),
               ListTile(
@@ -204,16 +196,22 @@ class SettingsScreen extends ConsumerWidget {
               ),
             ],
           ),
+          const SizedBox(height: 22),
+          _SignOutCard(
+            signingOut: signingOut,
+            onSignOut: () => _signOut(context, ref),
+          ),
         ],
       ),
     );
   }
 
   Future<void> _signOut(BuildContext context, WidgetRef ref) async {
+    final signingOut = ref.watch(signOutLoadingProvider).value;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('¿Cerrar sesión?'),
+        title: const Text('¿Deseas cerrar sesión?'),
         content: const Text(
           'Podrás volver a entrar con tu correo y contraseña. Tus movimientos '
           'seguirán guardados en este dispositivo.',
@@ -224,7 +222,9 @@ class SettingsScreen extends ConsumerWidget {
             child: const Text('Cancelar'),
           ),
           FilledButton(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
+            onPressed: signingOut
+                ? null
+                : () => Navigator.of(dialogContext).pop(true),
             child: const Text('Cerrar sesión'),
           ),
         ],
@@ -233,8 +233,12 @@ class SettingsScreen extends ConsumerWidget {
     if (confirmed != true || !context.mounted) {
       return;
     }
+    ref.read(signOutLoadingProvider).value = true;
     try {
       await ref.read(authRepositoryProvider).signOut();
+      if (context.mounted) {
+        context.go('/login');
+      }
     } on AuthFailure catch (failure) {
       if (context.mounted) {
         ScaffoldMessenger.of(context)
@@ -250,6 +254,10 @@ class SettingsScreen extends ConsumerWidget {
               content: Text('No se pudo cerrar sesión. Inténtalo de nuevo.'),
             ),
           );
+      }
+    } finally {
+      if (context.mounted) {
+        ref.read(signOutLoadingProvider).value = false;
       }
     }
   }
@@ -380,6 +388,48 @@ class _LeadingIcon extends StatelessWidget {
         borderRadius: BorderRadius.circular(11),
       ),
       child: Icon(icon, size: 19, color: theme.colorScheme.primary),
+    );
+  }
+}
+
+class _SignOutCard extends StatelessWidget {
+  const _SignOutCard({required this.signingOut, required this.onSignOut});
+
+  final bool signingOut;
+  final VoidCallback onSignOut;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.extension<FinanceColors>()!;
+    return Card(
+      child: ListTile(
+        leading: Container(
+          width: 34,
+          height: 34,
+          decoration: BoxDecoration(
+            color: colors.expense,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(Icons.logout_rounded, size: 18, color: Colors.white),
+        ),
+        title: Text(
+          'Cerrar sesión',
+          style: theme.textTheme.titleMedium?.copyWith(
+            color: colors.expense,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        subtitle: const Text('Tus movimientos permanecen en este teléfono'),
+        trailing: signingOut
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2.2),
+              )
+            : const Icon(Icons.chevron_right_rounded, size: 20),
+        onTap: signingOut ? null : onSignOut,
+      ),
     );
   }
 }

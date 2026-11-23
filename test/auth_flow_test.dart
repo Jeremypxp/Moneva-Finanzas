@@ -340,7 +340,7 @@ void main() {
       await tester.pumpWidget(_fullApp(repository));
       await tester.pumpAndSettle();
 
-      expect(find.text('Tu resumen'), findsOneWidget);
+      expect(find.textContaining('Hola, Ana'), findsOneWidget);
       expect(find.text('Bienvenido de nuevo'), findsNothing);
     });
 
@@ -360,7 +360,7 @@ void main() {
       await tester.tap(find.widgetWithText(FilledButton, 'Iniciar sesión'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Tu resumen'), findsOneWidget);
+      expect(find.textContaining('Hola, Ana'), findsOneWidget);
       expect(repository.signInCalls, 1);
     });
   });

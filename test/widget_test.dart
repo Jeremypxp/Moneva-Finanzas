@@ -33,7 +33,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Tu resumen'), findsOneWidget);
+    expect(find.textContaining('Moneva'), findsOneWidget);
     expect(find.text('Tu historial está vacío'), findsOneWidget);
     expect(find.text('Nuevo'), findsOneWidget);
 

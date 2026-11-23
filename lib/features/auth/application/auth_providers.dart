@@ -15,6 +15,16 @@ final authDeepLinkHandlerProvider = Provider<AuthDeepLinkHandler>((ref) {
   return AuthDeepLinkHandler.instance;
 });
 
+/// Estado simple de carga del cierre de sesión (evita toques repetidos).
+class _SignOutLoadingState {
+  var value = false;
+}
+
+/// Estado de carga del cierre de sesión (evita toques repetidos).
+final signOutLoadingProvider = Provider<_SignOutLoadingState>((ref) {
+  return _SignOutLoadingState();
+});
+
 class AuthSessionController extends Notifier<AuthUser?> {
   @override
   AuthUser? build() {

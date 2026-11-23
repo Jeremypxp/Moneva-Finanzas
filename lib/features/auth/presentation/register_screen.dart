@@ -141,9 +141,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
     return AuthScaffold(
       title: 'Crea tu cuenta',
-      subtitle:
-          'Guarda tus nombres y apellidos en el perfil de tu cuenta. Tus '
-          'movimientos no se envían a Supabase.',
+      centerHeader: true,
       footer: Wrap(
         alignment: WrapAlignment.center,
         crossAxisAlignment: WrapCrossAlignment.center,

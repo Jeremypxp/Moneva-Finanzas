@@ -8,6 +8,7 @@ import '../../../core/formatting/dates.dart';
 import '../../../core/formatting/money.dart';
 import '../../../core/widgets/app_error_view.dart';
 import '../../../core/widgets/section_header.dart';
+import '../../auth/application/auth_providers.dart';
 import '../../movements/application/movements_providers.dart';
 import '../../movements/domain/movement.dart';
 import '../../movements/presentation/widgets/movement_tile.dart';
@@ -89,17 +90,20 @@ class DashboardScreen extends ConsumerWidget {
   }
 }
 
-class _Header extends StatelessWidget {
+class _Header extends ConsumerWidget {
   const _Header();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final today = DateTime.now();
     final date = AppDates.fullDate(today);
     final capitalized = date.isEmpty
         ? date
         : '${date[0].toUpperCase()}${date.substring(1)}';
+    final user = ref.watch(authSessionProvider);
+    final firstName = user?.firstName;
+    final hasName = firstName != null && firstName.trim().isNotEmpty;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -125,7 +129,7 @@ class _Header extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'MONEVA',
+                    'Moneva',
                     style: theme.textTheme.labelSmall?.copyWith(
                       color: theme.colorScheme.primary,
                       fontWeight: FontWeight.w800,
@@ -144,14 +148,30 @@ class _Header extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 22),
-        Text('Tu resumen', style: theme.textTheme.headlineMedium),
-        const SizedBox(height: 4),
-        Text(
-          'Todo lo importante de tus finanzas, de un vistazo.',
-          style: theme.textTheme.bodyMedium?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
+        if (hasName) ...[
+          Text(
+            'Hola, $firstName',
+            style: theme.textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
           ),
-        ),
+          const SizedBox(height: 4),
+          Text(
+            'Todo lo importante de tus finanzas, de un vistazo.',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ] else ...[
+          Text('Tu resumen', style: theme.textTheme.headlineMedium),
+          const SizedBox(height: 4),
+          Text(
+            'Todo lo importante de tus finanzas, de un vistazo.',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
       ],
     );
   }

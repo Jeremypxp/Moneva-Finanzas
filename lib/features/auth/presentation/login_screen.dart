@@ -83,6 +83,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       subtitle:
           'Inicia sesión para identificarte en Moneva. Tus movimientos siguen '
           'guardados en este dispositivo.',
+      centerHeader: true,
       footer: Wrap(
         alignment: WrapAlignment.center,
         crossAxisAlignment: WrapCrossAlignment.center,

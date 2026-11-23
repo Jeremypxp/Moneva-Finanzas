@@ -36,7 +36,7 @@ class _EmailVerificationScreenState
           ..hideCurrentSnackBar()
           ..showSnackBar(
             const SnackBar(
-              content: Text('Se ha verificado la cuenta.'),
+              content: Text('Correo verificado. Ya puedes iniciar sesión.'),
               backgroundColor: Color(0xFF16805F),
               duration: Duration(seconds: 3),
             ),

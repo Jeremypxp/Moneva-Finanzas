@@ -8,14 +8,16 @@ import '../../domain/password_strength.dart';
 class AuthScaffold extends StatelessWidget {
   const AuthScaffold({
     required this.title,
-    required this.subtitle,
+    this.subtitle,
+    this.centerHeader = false,
     required this.child,
     this.footer,
     super.key,
   });
 
   final String title;
-  final String subtitle;
+  final String? subtitle;
+  final bool centerHeader;
   final Widget child;
   final Widget? footer;
 
@@ -60,14 +62,40 @@ class AuthScaffold extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 30),
-                  Text(title, style: theme.textTheme.headlineMedium),
-                  const SizedBox(height: 6),
-                  Text(
-                    subtitle,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
+                  if (centerHeader)
+                    Center(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Text(
+                            title,
+                            style: theme.textTheme.headlineMedium,
+                            textAlign: TextAlign.center,
+                          ),
+                          if (subtitle != null && subtitle!.isNotEmpty) ...[
+                            const SizedBox(height: 6),
+                            Text(
+                              subtitle!,
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        ],
+                      ),
+                    )
+                  else ...[
+                    Text(title, style: theme.textTheme.headlineMedium),
+                    const SizedBox(height: 6),
+                    if (subtitle != null && subtitle!.isNotEmpty)
+                      Text(
+                        subtitle!,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                  ],
                   const SizedBox(height: 22),
                   Card(
                     child: Padding(
